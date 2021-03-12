@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eve-Logi</title>
+    <link href="{{ url_for('static', filename='Semantic-UI-CSS/semantic.min.css') }}" rel="stylesheet" type="text/css">
+</head>
+<body>
+    {% block header %}
+        
+    {% endblock header %}
+    {% block content %}
+        
+    {% endblock content %}
+    {% block footer %}
+        
+    {% endblock footer %}
+    <script src="{{ url_for('static', filename='js/jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='Semantic-UI-CSS/semantic.min.js') }}"></script>
+</body>
+</html>
