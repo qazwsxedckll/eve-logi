@@ -1,17 +1,28 @@
-{% extends 'base.html' %}
-
-{% block header %}
-<div class="ui inverted fixed menu">
-    <div class="ui container">
-        <a href="#" class="header item">
-            EveLogi
-        </a>
-        <a href="#" class="right aligned item">
-            Login
-        </a>
+{% extends 'base.html' %} {% block header %}
+<div class="navbar-fixed">
+    <nav>
+        <div class="nav-wrapper black">
+            <a href="#" class="brand-logo left">Logo</a>
+            <ul id="nav-mobile" class="right">
+                <li><a href="#">Login</a></li>
+            </ul>
+        </div>
+    </nav>
+</div>
+{% endblock header %} {% block main %}
+<div class="container">
+    <h1>Track your profits and capture the market!</h1>
+    <p>Track your profits and capture the market! EVE Tycoon is a profit tracking and market management application for
+        EVE Online. Track trade and industry profits across all your characters, so you can be sure you're making a
+        profit! For industrialists,
+        EVE Tycoon tracks your production lines so you can see exactly how much you spent to build an item. Traders can
+        keep their market orders up to date with the order update hotkey, which opens the in-game market with the
+        undercut price in the clipboard.
+    </p>
+    <div class="row center" style="border: 1px;">
+        <div class="col s12">
+            <a class="waves-effect waves-light btn-large">Get Started</a>
+        </div>
     </div>
 </div>
-{% endblock header %}
-
-{% block content %}
-{% endblock content %}
+{% endblock main %}
