@@ -10,13 +10,18 @@
     </div>
     <!-- functions -->
     <div class="hidden justify-evenly text-gray-100 sm:flex flex-grow items-center">
-        <div class="tracking-wide transition duration-300 ease-in-out hover:bg-green-500 hover:text-white py-3 px-5">Appraisal</div>
-        <div class="tracking-wide transition duration-300 ease-in-out hover:bg-green-500 hover:text-white py-3 px-5">Trade</div>
-        <div class="tracking-wide transition duration-300 ease-in-out hover:bg-green-500 hover:text-white py-3 px-5">Industry</div>
+        <div class="tracking-wide transition duration-300 ease-in-out hover:bg-green-500 hover:text-white py-3 px-5">
+            Appraisal</div>
+        <div class="tracking-wide transition duration-300 ease-in-out hover:bg-green-500 hover:text-white py-3 px-5">
+            Trade</div>
+        <div class="tracking-wide transition duration-300 ease-in-out hover:bg-green-500 hover:text-white py-3 px-5">
+            Industry</div>
     </div>
     <!-- login -->
     <div class="flex-grow-0 self-center mr-2">
-        <img src="{{ url_for('static', filename='img/eve-sso-login-white-small.png') }}" alt="login">
+        <a href="{{ eve_oauth_url() }}">
+            <img src="{{ url_for('static', filename='img/eve-sso-login-white-small.png') }}" alt="login">
+        </a>
     </div>
 </div>
 {% endblock header %} {% block main %}
@@ -29,7 +34,8 @@
         suscipit tempora autem.
     </div>
     <div class="mx-auto mt-20 h-40 w-72">
-        <a href="#" class="inline-block transition duration-150 ease-in-out hover:text-white transform hover:scale-110 hover:bg-green-300
+        <a href="#"
+            class="inline-block transition duration-150 ease-in-out hover:text-white transform hover:scale-110 hover:bg-green-300
             focus:outline-none rounded-lg text-gray-100 font-extrabold bg-green-500 px-10 py-3 shadow-lg tracking-wider active:bg-red-500">
             Get Start!
         </a>
