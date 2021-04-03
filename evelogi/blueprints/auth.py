@@ -5,10 +5,9 @@ import requests
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
 
-from flask import abort
 from flask import Blueprint
 from flask.templating import render_template
-from flask import request, current_app
+from flask import request, current_app, abort, redirect, url_for, session
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -54,11 +53,17 @@ def login():
         headers = {
             "Authorization": "Bearer {}".format(access_token)
         }
+
+        session['username'] = character_name
+
+        print(data)
+        print('---------------')
+        print(jwt)
     else:
         print("\nSSO response JSON is: {}".format(res.json()))
         abort(res.status_code)
 
-    redirect
+    return redirect(url_for('main.index'))
 
 def validate_eve_jwt(jwt_token):
     """Validate a JWT token retrieved from the EVE SSO.

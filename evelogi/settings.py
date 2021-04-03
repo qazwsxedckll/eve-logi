@@ -8,7 +8,7 @@ class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 class DevelopmentConfig(BaseConfig):
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(basedir, 'data-dev.db')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     
     #Oauth
     OAUTH_URL='https://login.eveonline.com/v2/oauth/authorize?'

@@ -19,9 +19,13 @@
     </div>
     <!-- login -->
     <div class="flex-grow-0 self-center mr-2">
+        {% if username %}
+        <div class="text-gray-100 tracking-wide">{{ username }}</div>
+        {% else %}
         <a href="{{ eve_oauth_url() }}">
             <img src="{{ url_for('static', filename='img/eve-sso-login-white-small.png') }}" alt="login">
         </a>
+        {% endif %}
     </div>
 </div>
 {% endblock header %} {% block main %}

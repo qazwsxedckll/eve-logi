@@ -2,12 +2,14 @@ import os
 
 from urllib.parse import urlencode
 
+import click
 from flask import Flask
 
-from evelogi.extensions import db
+from evelogi.extensions import db, migrate
 from evelogi.settings import config
 from evelogi.blueprints.auth import auth_bp
 from evelogi.blueprints.main import main_bp
+from evelogi.models.auth import User, Character, RefreshToken
 
 
 def create_app():
@@ -45,6 +47,7 @@ def register_logging(app):
 
 def register_extensions(app):
     db.init_app(app)
+    migrate.init_app(app, db)
 
 
 def register_blueprints(app):
@@ -65,4 +68,13 @@ def register_errors(app):
 
 
 def register_commands(app):
-    pass
+    @app.cli.command()
+    @click.option('--drop', is_flag=True, help='Create after drop.')
+    def initdb(drop):
+        """Initialize the database."""
+        if drop:
+            click.confirm('This operation will delete the database, do you want to continue?', abort=True)
+            db.drop_all()
+            click.echo('Drop tables.')
+        db.create_all()
+        click.echo('Initialized database.')
