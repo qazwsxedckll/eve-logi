@@ -16,12 +16,13 @@ auth_bp = Blueprint('auth', __name__)
 def login():
     state = request.args.get('state')
     if state is None or state != current_app.config['STATE']:
+        current_app.logger.warning('state from eve:{} does not match state sent:{}'.format(state, current_app.config['STATE']))
         abort(400)
     
     code = request.args.get('code')
-    client_id = current_app.config["CLIENT_ID"]
-    app_secret = os.environ.get("EVELOGI_SECRET_KEY")
-    user_pass = "{}:{}".format(client_id, app_secret)
+    client_id = current_app.config['CLIENT_ID']
+    eve_app_secret = os.environ.get('EVELOGI_SECRET_KEY')
+    user_pass = "{}:{}".format(client_id, eve_app_secret)
     basic_auth = base64.urlsafe_b64encode(user_pass.encode('utf-8')).decode()
     auth_header = "Basic {}".format(basic_auth)
 

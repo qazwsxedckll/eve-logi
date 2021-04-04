@@ -1,11 +1,15 @@
 import os
+import logging
+import time
 
+from logging.handlers import RotatingFileHandler
 from urllib.parse import urlencode
 
 import click
 from flask import Flask
+from flask.logging import default_handler
 
-from evelogi.extensions import db, migrate
+from evelogi.extensions import db, migrate, login_manager
 from evelogi.settings import config
 from evelogi.blueprints.auth import auth_bp
 from evelogi.blueprints.main import main_bp
@@ -18,7 +22,7 @@ def create_app():
     app = Flask('evelogi')
     app.config.from_object(config[config_name])
 
-    register_logging(app)
+    register_logger(app)
     register_extensions(app)
     register_blueprints(app)
     register_shell_context(app)
@@ -26,28 +30,27 @@ def create_app():
     register_errors(app)
     register_commands(app)
 
-    @app.template_global()
-    def eve_oauth_url():
-        params = {
-            'response_type': app.config['RESPONSE_TYPE'],
-            'redirect_uri': app.config['REDIRECT_URL'],
-            'client_id': app.config['CLIENT_ID'],
-            'scope': app.config['SCOPE'],
-            'state': app.config['STATE'],
-        }
-
-        return str(app.config['OAUTH_URL'] + urlencode(params))
-
     return app
 
 
-def register_logging(app):
-    pass
+def register_logger(app):
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s - %(filename)s:%(lineno)s')
+    
+    default_handler.setFormatter(formatter)
 
+    file_handler = RotatingFileHandler('logs/{}.log'.format(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())), maxBytes=10*1024*1024, backupCount=10)
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.INFO)
+
+    if not app.debug:
+        app.logger.setLevel(logging.INFO)
+        app.logger.removeHandler(default_handler)
+        app.logger.addHandler(file_handler)
 
 def register_extensions(app):
     db.init_app(app)
     migrate.init_app(app, db)
+    login_manager.init_app(app)
 
 
 def register_blueprints(app):
@@ -60,7 +63,18 @@ def register_shell_context(app):
 
 
 def register_template_context(app):
-    pass
+
+    @app.template_global()
+    def eve_oauth_url():
+        params = {
+            'response_type': app.config['RESPONSE_TYPE'],
+            'redirect_uri': app.config['REDIRECT_URL'],
+            'client_id': app.config['CLIENT_ID'],
+            'scope': app.config['SCOPE'],
+            'state': app.config['STATE'],
+        }
+
+        return str(app.config['OAUTH_URL'] + urlencode(params))
 
 
 def register_errors(app):

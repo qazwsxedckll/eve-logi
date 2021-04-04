@@ -1,6 +1,8 @@
+from flask_login import UserMixin
+
 from evelogi.extensions import db
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True) 
     subscription = db.Column(db.Integer, default=0)
     characters = db.relationship('Character', back_populates='user', cascade='all, delete-orphan')
