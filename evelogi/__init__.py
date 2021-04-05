@@ -13,7 +13,7 @@ from evelogi.extensions import db, migrate, login_manager
 from evelogi.settings import config
 from evelogi.blueprints.auth import auth_bp
 from evelogi.blueprints.main import main_bp
-from evelogi.models.auth import User, Character, RefreshToken
+from evelogi.models.auth import User, Character_, RefreshToken
 
 
 def create_app():
@@ -38,11 +38,11 @@ def register_logger(app):
     
     default_handler.setFormatter(formatter)
 
-    file_handler = RotatingFileHandler('logs/{}.log'.format(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())), maxBytes=10*1024*1024, backupCount=10)
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.INFO)
-
     if not app.debug:
+        file_handler = RotatingFileHandler('logs/{}.log'.format(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())), maxBytes=10*1024*1024, backupCount=10)
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(logging.INFO)
+
         app.logger.setLevel(logging.INFO)
         app.logger.removeHandler(default_handler)
         app.logger.addHandler(file_handler)
@@ -51,6 +51,7 @@ def register_extensions(app):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    login_manager.login_view = "auth.login"
 
 
 def register_blueprints(app):
