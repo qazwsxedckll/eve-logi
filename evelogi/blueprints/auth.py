@@ -18,16 +18,15 @@ from evelogi.utils import redirect_back
 
 auth_bp = Blueprint('auth', __name__)
 
+
 @auth_bp.route('/login/')
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
-
     state = request.args.get('state')
     if state is None or state != current_app.config['STATE']:
-        current_app.logger.warning('state from eve:{} does not match state sent:{}'.format(state, current_app.config['STATE']))
+        current_app.logger.warning('state from eve:{} does not match state sent:{}'.format(
+            state, current_app.config['STATE']))
         abort(400)
-    
+
     code = request.args.get('code')
     client_id = current_app.config['CLIENT_ID']
     eve_app_secret = os.environ.get('EVELOGI_SECRET_KEY')
@@ -54,7 +53,7 @@ def login():
 
     if res.status_code == 200:
         data = res.json()
-        access_token = data['access_token'] 
+        access_token = data['access_token']
         jwt = validate_eve_jwt(access_token)
 
         character_id = jwt["sub"].split(":")[2]
@@ -62,55 +61,64 @@ def login():
         owner_hash = jwt['owner']
         character = Character_.query.filter_by(name=character_name).first()
         if character:
-            if character.user:
-                if character.owner_hash != owner_hash:
+            if current_user.is_authenticated:
+                # add a existing character
+                redirect(url_for('main.account'))
+            else:
+                # login a existing user
+                if character.user:
+                    if character.owner_hash != owner_hash:
+                        db.session.delete(character)
+                        db.session.commit()
+                        current_app.logger.warning('owner has changed.')
+                        abort(400)
+                    else:
+                        login_user(character.user)
+                        current_app.logger.info(
+                            'user:{} logined'.format(current_user.id))
+                else:
                     db.session.delete(character)
                     db.session.commit()
-                    current_app.logger.warning('owner has changed.')
+                    current_app.logger.error(
+                        'orphan character, something need to be fixed')
                     abort(400)
-                else:
-                    login_user(character.user, remember=True)
-            else:
-                db.session.delete(character)
-                db.session.commit()
-                current_app.logger.error('orphan character, something need to be fixed')
-                abort(400)
         else:
-            user = User()
-            character = Character_(name=character_name, character_id=character_id, owner_hash=owner_hash)
-            user.characters.append(character)
-
+            character = Character_(
+                name=character_name, character_id=character_id, owner_hash=owner_hash)
             refresh_token = RefreshToken(token=data['refresh_token'])
             character.refresh_tokens.append(refresh_token)
-
-            db.session.add(user)
             db.session.add(character)
             db.session.add(refresh_token)
-            db.session.commit()
-            login_user(user)
-            current_app.logger.info('New user, user id: {}, character name: {}'.format(user.id, character.name))
 
-        
-        current_app.logger.info('user:{} logined'.format(current_user.id))
+            if current_user.is_authenticated:
+                # add character
+                current_user.characters.append(character)
+                db.session.commit()
+                current_app.logger.info(
+                    'Add character, user id: {}, character name: {}'.format(current_user.id, character.name))
+            else:
+                # create a new user
+                user = User()
+                user.characters.append(character)
 
-        session['access_token'] = access_token
-        session['access_token_expires'] = int(time.time()) + data['expires_in']
-        session['username'] = character_name
-
-        # headers = {
-        #     "Authorization": "Bearer {}".format(access_token)
-        # }
+                db.session.add(user)
+                db.session.commit()
+                login_user(user)
+                current_app.logger.info(
+                    'New user, user id: {}, character name: {}'.format(user.id, character.name))
 
         return redirect_back()
     else:
-        current_app.logger.warning("\nSSO response JSON is: {}".format(res.json()))
+        current_app.logger.warning(
+            "\nSSO response JSON is: {}".format(res.json()))
         abort(res.status_code)
+
 
 @auth_bp.route('/logout/')
 @login_required
 def logout():
     logout_user()
-    return redirect_back()
+    return redirect(url_for('main.index'))
 
 def validate_eve_jwt(jwt_token):
     """Validate a JWT token retrieved from the EVE SSO.
@@ -132,8 +140,8 @@ def validate_eve_jwt(jwt_token):
         jwk_sets = data["keys"]
     except KeyError as e:
         current_app.logger.warning("Something went wrong when retrieving the JWK set. The returned "
-              "payload did not have the expected key {}. \nPayload returned "
-              "from the SSO looks like: {}".format(e, data))
+                                   "payload did not have the expected key {}. \nPayload returned "
+                                   "from the SSO looks like: {}".format(e, data))
         abort(400)
 
     jwk_set = next((item for item in jwk_sets if item["alg"] == "RS256"))
@@ -146,20 +154,22 @@ def validate_eve_jwt(jwt_token):
             issuer="login.eveonline.com"
         )
     except ExpiredSignatureError:
-        current_app.logger.warning("The JWT token has expired: {}".format(str(e)))
+        current_app.logger.warning(
+            "The JWT token has expired: {}".format(str(e)))
         abort(400)
     except JWTError as e:
-        current_app.logger.warning("The JWT signature was invalid: {}".format(str(e)))
+        current_app.logger.warning(
+            "The JWT signature was invalid: {}".format(str(e)))
         abort(400)
     except JWTClaimsError as e:
         try:
             return jwt.decode(
-                        jwt_token,
-                        jwk_set,
-                        algorithms=jwk_set["alg"],
-                        issuer="https://login.eveonline.com"
-                    )
+                jwt_token,
+                jwk_set,
+                algorithms=jwk_set["alg"],
+                issuer="https://login.eveonline.com"
+            )
         except JWTClaimsError as e:
             current_app.logger.warning("The issuer claim was not from login.eveonline.com or "
-                  "https://login.eveonline.com: {}".format(str(e)))
+                                       "https://login.eveonline.com: {}".format(str(e)))
             abort(400)

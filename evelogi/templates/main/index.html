@@ -1,35 +1,5 @@
-{% extends 'base.html' %} {% block header %}
-<div class="bg-gray-800 h-14 flex justify-between items-stretch">
-    <!-- logo and menu -->
-    <div class="flex justify-between flex-grow-0 items-center">
-        <svg class="h-10 w-10 text-gray-100 ml-2 sm:hidden" xmlns="http://www.w3.org/2000/svg" fill="none"
-            viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-        <div class="text-gray-100 tracking-wide text-4xl font-bold ml-2 whitespace-nowrap">EVE Logi</div>
-    </div>
-    <!-- functions -->
-    <div class="hidden justify-evenly text-gray-100 sm:flex flex-grow items-center">
-        <div class="tracking-wide transition duration-300 ease-in-out hover:bg-green-500 hover:text-white py-3 px-5">
-            Appraisal</div>
-        <div class="tracking-wide transition duration-300 ease-in-out hover:bg-green-500 hover:text-white py-3 px-5">
-            Trade</div>
-        <div class="tracking-wide transition duration-300 ease-in-out hover:bg-green-500 hover:text-white py-3 px-5">
-            Industry</div>
-    </div>
-    <!-- login -->
-    <div class="flex-grow-0 self-center mr-2">
-        {% if current_user.is_authenticated %}
-        <div class="text-gray-100 tracking-wide">{{ username }}</div>
-        <a href="{{ url_for('auth.logout') }}" class="text-gray-100 tracking-wide">Logout</a>
-        {% else %}
-        <a href="{{ eve_oauth_url() }}">
-            <img src="{{ url_for('static', filename='img/eve-sso-login-white-small.png') }}" alt="login">
-        </a>
-        {% endif %}
-    </div>
-</div>
-{% endblock header %} {% block main %}
+{% extends 'base.html' %}
+{% block main %}
 <div
     class="container mx-auto mt-10 bg-white text-center h-auto max-w-xs sm:max-w-md lg:max-w-2xl rounded-xl border-gray-800 border-4 border-solid">
     <div class="text-3xl mt-5">Lorem ipsum dolor sit amet.</div>
