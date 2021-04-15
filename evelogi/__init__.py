@@ -9,10 +9,11 @@ import click
 from flask import Flask
 from flask.logging import default_handler
 
-from evelogi.extensions import db, migrate, login_manager
+from evelogi.extensions import db, migrate, login_manager, cache
 from evelogi.settings import config
 from evelogi.blueprints.auth import auth_bp
 from evelogi.blueprints.main import main_bp
+from evelogi.blueprints.trade import trade_bp
 from evelogi.models.auth import User, Character_, RefreshToken
 
 
@@ -53,11 +54,13 @@ def register_extensions(app):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
+    cache.init_app(app)
 
 
 def register_blueprints(app):
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(trade_bp)
 
 
 def register_shell_context(app):
