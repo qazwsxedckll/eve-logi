@@ -5,8 +5,11 @@ from flask import current_app, abort
 
 from evelogi.extensions import cache
 
-@cache.cached(timeout=50, key_prefix='jita_sell_orders')
+@cache.cached(timeout=3600, key_prefix='jita_sell_orders')
 def jita_sell_orders():
+    """Retrive Jita sell orders. Takes about 5min. Should not be called simultaneously.
+    """
+    #TODO:should disable others' use if anyone has called the function
     path = "https://esi.evetech.net/latest/markets/10000002/orders/?datasource=tranquility&order_type=sell"
     res = requests.get(path)
 
@@ -16,8 +19,7 @@ def jita_sell_orders():
 
         pages = res.headers["x-pages"]
         current_app.logger.debug("x-pages: {}".format(pages))
-        # for i in range(2, int(pages) + 1):
-        for i in range(2, 20):
+        for i in range(2, int(pages) + 1):
             res = requests.get(path + "&page={}".format(i))
             if res.status_code == 200:
                 data.append(res.json())
