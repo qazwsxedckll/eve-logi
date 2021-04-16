@@ -12,12 +12,11 @@ from flask import request, current_app, abort, redirect, url_for, session
 
 from flask_login import login_user, current_user, logout_user, login_required
 
-from evelogi.models.auth import RefreshToken, Character_, User
+from evelogi.models.setting import RefreshToken, Character_, User
 from evelogi.extensions import db
 from evelogi.utils import redirect_back
 
 auth_bp = Blueprint('auth', __name__)
-
 
 @auth_bp.route('/login/')
 def login():

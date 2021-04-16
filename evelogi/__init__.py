@@ -9,12 +9,12 @@ import click
 from flask import Flask
 from flask.logging import default_handler
 
-from evelogi.extensions import db, migrate, login_manager, cache
+from evelogi.extensions import db, migrate, login_manager, cache, Base
 from evelogi.settings import config
 from evelogi.blueprints.auth import auth_bp
 from evelogi.blueprints.main import main_bp
 from evelogi.blueprints.trade import trade_bp
-from evelogi.models.auth import User, Character_, RefreshToken
+from evelogi.models.setting import User, Character_, RefreshToken, Structure
 
 
 def create_app():
@@ -35,13 +35,15 @@ def create_app():
 
 
 def register_logger(app):
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s - %(filename)s:%(lineno)s')
-    
+    formatter = logging.Formatter(
+        '%(asctime)s %(levelname)s %(message)s - %(filename)s:%(lineno)s')
+
     default_handler.setFormatter(formatter)
 
     # log to file
     if not app.debug:
-        file_handler = RotatingFileHandler('logs/{}.log'.format(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())), maxBytes=10*1024*1024, backupCount=10)
+        file_handler = RotatingFileHandler('logs/{}.log'.format(time.strftime(
+            '%Y-%m-%d %H:%M:%S', time.localtime())), maxBytes=10*1024*1024, backupCount=10)
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.INFO)
 
@@ -49,8 +51,11 @@ def register_logger(app):
         app.logger.removeHandler(default_handler)
         app.logger.addHandler(file_handler)
 
+
 def register_extensions(app):
     db.init_app(app)
+    with app.app_context():
+        Base.prepare(db.engine, reflect=True)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
@@ -92,7 +97,8 @@ def register_commands(app):
     def initdb(drop):
         """Initialize the database."""
         if drop:
-            click.confirm('This operation will delete the database, do you want to continue?', abort=True)
+            click.confirm(
+                'This operation will delete the database, do you want to continue?', abort=True)
             db.drop_all()
             click.echo('Drop tables.')
         db.create_all()

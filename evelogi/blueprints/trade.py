@@ -1,19 +1,29 @@
 import requests
 
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, url_for, redirect, request
 
 from flask_login import login_required, current_user
 from flask.globals import current_app
 
-from evelogi.utils import redirect_back
-from evelogi.extensions import cache
+from evelogi.utils import redirect_back, eve_oauth_url
+from evelogi.extensions import cache, Base, db
+from evelogi.forms.trade import TradeGoodsForm
 
 trade_bp = Blueprint('trade', __name__)
 
-@trade_bp.route('/trade')
-@login_required
+@trade_bp.route('/trade', methods=['GET', 'POST'])
 def trade():
-    return redirect_back()
+    if current_user.is_authenticated:
+        return redirect(eve_oauth_url())
+    else:
+        SolarSystem = Base.classes.mapSolarSystems
+        solar_systems = db.session.query(SolarSystem).all()
+        choices = [(system.regionID, system.solarSystemName) for system in solar_systems]
+        form = TradeGoodsForm()
+        form.solar_system.choices = choices
+        if form.validate_on_submit():
+            region_id = form.solar_system.data
+        return render_template("trade/trade.html", form=form)
 
 @cache.cached(timeout=3600, key_prefix='jita_sell_orders')
 def jita_sell_orders():

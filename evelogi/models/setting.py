@@ -7,6 +7,9 @@ from flask_login import UserMixin
 
 from evelogi.extensions import db
 
+StructureCharacterTable = db.Table('structure_character', db.Column('structure_id', db.Integer, db.ForeignKey('character_.id')),
+                                   db.Column('character__id', db.Integer, db.ForeignKey('structure.id')))
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True) 
     subscription = db.Column(db.Integer, default=0)
@@ -23,6 +26,10 @@ class Character_(db.Model):
     user = db.relationship('User', back_populates="characters")
 
     refresh_tokens = db.relationship('RefreshToken', cascade='all, delete-orphan')
+
+    structures = db.relationship('Structure',
+                                 secondary=StructureCharacterTable,
+                                 back_populates='characters')
 
     def get_access_token(self):
         form_values = {
@@ -62,3 +69,18 @@ class RefreshToken(db.Model):
     scope = db.Column(db.Text)
 
     character_id = db.Column(db.Integer, db.ForeignKey('character_.id'))
+
+class Structure(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    structure_id = db.Column(db.Integer, unique=True, nullable=False)
+    name = db.Column(db.String(64), nullable=False)
+    jita_to_fee = db.Column(db.Integer, default=0)
+    jita_to_collateral = db.Column(db.Float, default=0)
+    to_jita_fee = db.Column(db.Integer, default=0)
+    to_jita_collateral = db.Column(db.Float, default=0)
+    sales_tax = db.Column(db.Float, default=0)
+    brokers_fee = db.Column(db.Float, default=0)
+
+    characters = db.relationship('Character_',
+                                 secondary=StructureCharacterTable,
+                                 back_populates='structures')
