@@ -8,17 +8,19 @@ from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
 
 from flask import Blueprint
 from flask.templating import render_template
-from flask import request, current_app, abort, redirect, url_for, session
+from flask import request, current_app, abort, redirect, url_for
 
 from flask_login import login_user, current_user, logout_user, login_required
 
-from evelogi.models.setting import RefreshToken, Character_, User
+from evelogi.models.account import RefreshToken, Character_, User, Structure
 from evelogi.extensions import db
 from evelogi.utils import redirect_back
+from evelogi.forms.account import StructureForm
 
-auth_bp = Blueprint('auth', __name__)
+account_bp = Blueprint('account', __name__)
 
-@auth_bp.route('/login/')
+
+@account_bp.route('/login/')
 def login():
     state = request.args.get('state')
     if state is None or state != current_app.config['STATE']:
@@ -113,11 +115,12 @@ def login():
         abort(res.status_code)
 
 
-@auth_bp.route('/logout/')
+@account_bp.route('/logout/')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('main.index'))
+
 
 def validate_eve_jwt(jwt_token):
     """Validate a JWT token retrieved from the EVE SSO.
@@ -172,3 +175,42 @@ def validate_eve_jwt(jwt_token):
             current_app.logger.warning("The issuer claim was not from login.eveonline.com or "
                                        "https://login.eveonline.com: {}".format(str(e)))
             abort(400)
+
+
+@account_bp.route('/structure/add', methods=['GET', 'POST'])
+@login_required
+def add_structure():
+    characters = current_user.characters
+    choices = [(character.id, character.name)
+               for character in characters]
+    form = StructureForm()
+    form.character_id.choices = choices
+    if form.validate_on_submit():
+        structure_id = form.structure_id.data
+        name = form.name.data
+        jita_to_fee = form.jita_to_fee.data
+        jita_to_collateral = form.jita_to_collateral.data
+        to_jita_fee = form.to_jita_fee.data
+        to_jita_collateral = form.to_jita_collateral.data
+        sales_tax = form.sales_tax.data
+        brokers_fee = form.brokers_fee.data
+        character_id = form.character_id.data
+        character = Character_.query.get(character_id)
+        if character is None:
+            current_app.logger.error('character with id {} not found.'.format(character_id))
+            abort(400)
+        structure = Structure(structure_id=structure_id,
+                              name=name,
+                              jita_to_fee=jita_to_fee,
+                              jita_to_collateral=jita_to_collateral,
+                              to_jita_fee=to_jita_fee,
+                              to_jita_collateral=to_jita_collateral,
+                              sales_tax=sales_tax,
+                              brokers_fee=brokers_fee,
+                              character=character
+                              )
+        db.session.add(structure)
+        db.session.commit()
+        return redirect(url_for('main.account'))
+    return render_template('main/structure.html', form=form)
+

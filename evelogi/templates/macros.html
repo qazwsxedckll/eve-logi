@@ -1,5 +1,5 @@
 {% macro form_field(field) %}
-    {{ field.lable }}<br>
+    {{ field.lable(**kwargs) }}<br>
     {{ field(**kwargs) }}<br>
     {% if field.errors %}
         {% for error in field.errors %}

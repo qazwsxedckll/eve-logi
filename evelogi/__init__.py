@@ -11,10 +11,10 @@ from flask.logging import default_handler
 
 from evelogi.extensions import db, migrate, login_manager, cache, Base
 from evelogi.settings import config
-from evelogi.blueprints.auth import auth_bp
+from evelogi.blueprints.account import account_bp
 from evelogi.blueprints.main import main_bp
 from evelogi.blueprints.trade import trade_bp
-from evelogi.models.setting import User, Character_, RefreshToken, Structure
+from evelogi.models.account import User, Character_, RefreshToken, Structure
 
 
 def create_app():
@@ -64,7 +64,7 @@ def register_extensions(app):
 
 def register_blueprints(app):
     app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(account_bp)
     app.register_blueprint(trade_bp)
 
 

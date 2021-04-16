@@ -13,7 +13,7 @@ trade_bp = Blueprint('trade', __name__)
 
 @trade_bp.route('/trade', methods=['GET', 'POST'])
 def trade():
-    if current_user.is_authenticated:
+    if not current_user.is_authenticated:
         return redirect(eve_oauth_url())
     else:
         SolarSystem = Base.classes.mapSolarSystems

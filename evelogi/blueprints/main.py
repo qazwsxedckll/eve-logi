@@ -4,6 +4,8 @@ from flask.globals import current_app
 
 from flask_login import login_required
 
+from evelogi.models.account import Structure
+
 main_bp = Blueprint('main', __name__) 
 
 @main_bp.route('/')
@@ -13,4 +15,5 @@ def index():
 @main_bp.route('/account')
 @login_required
 def account():
-    return render_template('main/account.html')
+    structures = Structure.query.all()
+    return render_template('main/account.html', structures=structures)

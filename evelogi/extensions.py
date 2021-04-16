@@ -10,7 +10,7 @@ migrate = Migrate()
 login_manager = LoginManager()
 cache = Cache()
 
-from evelogi.models.setting import User
+from evelogi.models.account import User
 
 @login_manager.user_loader
 def load_user(user_id):

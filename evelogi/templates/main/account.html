@@ -36,39 +36,40 @@
                                 Brokers Fee
                             </th>
                             <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">Edit</span>
+                                <!-- TODO: need prettify -->
+                                <a href="{{ url_for('account.add_structure') }}">&plus;</a>
                             </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
+                        {% for structure in structures %}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                4-HWWF Keepstar
+                                {{ structure.name }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                700
+                                {{ structure.jita_to_fee }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                0%
+                                {{ structure.jita_to_collateral }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                500
+                                {{ structure.to_jita_fee }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                2%
+                                {{ structure.to_jita_collateral }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                2.25%
+                                {{ structure.sales_tax }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                1%
+                                {{ structure.brokers_fee }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <a href="#" class="text-indigo-600 hover:text-indigo-900">Edit</a>
                             </td>
                         </tr>
-
-                        <!-- More people... -->
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -103,7 +104,7 @@
             focus:outline-none rounded-lg text-gray-100 font-extrabold bg-green-500 px-10 py-3 shadow-lg tracking-wider active:bg-green-800">
             Add Characters
         </a>
-        <a href="{{ url_for('auth.logout') }}"
+        <a href="{{ url_for('account.logout') }}"
             class="inline-block transition duration-150 ease-in-out hover:text-white transform hover:scale-110 hover:bg-red-300
             focus:outline-none rounded-lg text-gray-100 font-extrabold bg-red-500 px-10 py-3 shadow-lg tracking-wider active:bg-red-800">
             Logout
