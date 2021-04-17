@@ -3,9 +3,6 @@ import base64
 import requests
 import time
 
-from jose import jwt
-from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
-
 from flask import Blueprint
 from flask.templating import render_template
 from flask import request, current_app, abort, redirect, url_for
@@ -14,7 +11,7 @@ from flask_login import login_user, current_user, logout_user, login_required
 
 from evelogi.models.account import RefreshToken, Character_, User, Structure
 from evelogi.extensions import db
-from evelogi.utils import redirect_back
+from evelogi.utils import redirect_back, validate_eve_jwt
 from evelogi.forms.account import StructureForm
 
 account_bp = Blueprint('account', __name__)
@@ -128,61 +125,6 @@ def del_character(id):
     db.session.commit()
     db.session.delete(character)
     return redirect(url_for('main.account'))
-
-def validate_eve_jwt(jwt_token):
-    """Validate a JWT token retrieved from the EVE SSO.
-    Args:
-        jwt_token: A JWT token originating from the EVE SSO
-    Returns
-        dict: The contents of the validated JWT token if there are no
-              validation errors
-    """
-
-    jwk_set_url = "https://login.eveonline.com/oauth/jwks"
-
-    res = requests.get(jwk_set_url)
-    res.raise_for_status()
-
-    data = res.json()
-
-    try:
-        jwk_sets = data["keys"]
-    except KeyError as e:
-        current_app.logger.warning("Something went wrong when retrieving the JWK set. The returned "
-                                   "payload did not have the expected key {}. \nPayload returned "
-                                   "from the SSO looks like: {}".format(e, data))
-        abort(400)
-
-    jwk_set = next((item for item in jwk_sets if item["alg"] == "RS256"))
-
-    try:
-        return jwt.decode(
-            jwt_token,
-            jwk_set,
-            algorithms=jwk_set["alg"],
-            issuer="login.eveonline.com"
-        )
-    except ExpiredSignatureError:
-        current_app.logger.warning(
-            "The JWT token has expired: {}".format(str(e)))
-        abort(400)
-    except JWTError as e:
-        current_app.logger.warning(
-            "The JWT signature was invalid: {}".format(str(e)))
-        abort(400)
-    except JWTClaimsError as e:
-        try:
-            return jwt.decode(
-                jwt_token,
-                jwk_set,
-                algorithms=jwk_set["alg"],
-                issuer="https://login.eveonline.com"
-            )
-        except JWTClaimsError as e:
-            current_app.logger.warning("The issuer claim was not from login.eveonline.com or "
-                                       "https://login.eveonline.com: {}".format(str(e)))
-            abort(400)
-
 
 @account_bp.route('/structure/add', methods=['GET', 'POST'])
 @login_required

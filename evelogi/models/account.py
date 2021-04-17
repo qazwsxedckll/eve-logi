@@ -6,11 +6,21 @@ from flask import current_app, abort
 from flask_login import UserMixin
 
 from evelogi.extensions import db
+from evelogi.utils import validate_eve_jwt
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True) 
     subscription = db.Column(db.Integer, default=0)
     characters = db.relationship('Character_', back_populates='user', cascade='all, delete-orphan')
+
+    def orders(self):
+        """Retrive orders of a user.
+        """
+        characters = self.characters
+        data = []
+        for character in characters:
+            data.append(character.orders())
+        return data
 
 # use character as table name will cause unknown error in mysql
 class Character_(db.Model):
@@ -27,6 +37,38 @@ class Character_(db.Model):
     structures = db.relationship('Structure',
                                  back_populates='character',
                                  cascade='all, delete-orphan')
+
+    def orders(self):
+        """Retrive orders of a character.
+        """
+        access_token = self.get_access_token()
+        path = "https://esi.evetech.net/latest/characters/" + str(self.character_id) + "/orders/?datasource=tranquility&token=" + access_token
+        data = []
+
+        res = requests.get(path)
+
+        if res.status_code == 200:
+            data.append(res.json())
+
+            pages = res.headers.get("x-pages")
+            if not pages:
+                return data
+
+            current_app.logger.debug("x-pages: {}".format(pages))
+            for i in range(2, int(pages) + 1):
+                res = requests.get(path + "&page={}".format(i))
+                if res.status_code == 200:
+                    data.append(res.json())
+                    current_app.logger.debug("{}".format(i))
+                else:
+                    current_app.logger.warning(
+                        "\nSSO response JSON is: {}".format(res.json()))
+                    abort(res.status_code)
+        else:
+            current_app.logger.warning(
+                "\nSSO response JSON is: {}".format(res.json()))
+            abort(res.status_code)
+        return data
 
     def get_access_token(self):
         form_values = {
@@ -54,7 +96,9 @@ class Character_(db.Model):
 
         if res.status_code == 200:
             data = res.json()
-            return data['access_token']
+            access_token = data['access_token']
+            validate_eve_jwt(access_token)
+            return access_token 
         else:
             current_app.logger.warning(
                 "\nSSO response JSON is: {}".format(res.json()))

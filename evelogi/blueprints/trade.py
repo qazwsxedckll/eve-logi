@@ -12,6 +12,7 @@ from evelogi.forms.trade import TradeGoodsForm
 trade_bp = Blueprint('trade', __name__)
 
 @trade_bp.route('/trade', methods=['GET', 'POST'])
+@login_required
 def trade():
     if not current_user.is_authenticated:
         return redirect(eve_oauth_url())
@@ -26,6 +27,7 @@ def trade():
         return render_template("trade/trade.html", form=form)
 
 @cache.cached(timeout=3600, key_prefix='jita_sell_orders')
+@login_required
 def jita_sell_orders():
     """Retrive Jita sell orders. Takes about 5min. Should not be called simultaneously.
     """

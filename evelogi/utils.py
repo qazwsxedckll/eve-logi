@@ -1,6 +1,10 @@
+import requests
 from urllib.parse import urlparse, urljoin, urlencode
 
-from flask import request, redirect, url_for, current_app
+from jose import jwt
+from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
+
+from flask import request, redirect, url_for, current_app, abort
 
 def is_safe_url(target):
     ref_url = urlparse(request.host_url)
@@ -25,3 +29,58 @@ def eve_oauth_url():
     }
 
     return str(current_app.config['OAUTH_URL'] + urlencode(params))
+
+def validate_eve_jwt(jwt_token):
+    """Validate a JWT token retrieved from the EVE SSO.
+    Args:
+        jwt_token: A JWT token originating from the EVE SSO
+    Returns
+        dict: The contents of the validated JWT token if there are no
+              validation errors
+    """
+
+    jwk_set_url = "https://login.eveonline.com/oauth/jwks"
+
+    res = requests.get(jwk_set_url)
+    res.raise_for_status()
+
+    data = res.json()
+
+    try:
+        jwk_sets = data["keys"]
+    except KeyError as e:
+        current_app.logger.warning("Something went wrong when retrieving the JWK set. The returned "
+                                   "payload did not have the expected key {}. \nPayload returned "
+                                   "from the SSO looks like: {}".format(e, data))
+        abort(400)
+
+    jwk_set = next((item for item in jwk_sets if item["alg"] == "RS256"))
+
+    try:
+        return jwt.decode(
+            jwt_token,
+            jwk_set,
+            algorithms=jwk_set["alg"],
+            issuer="login.eveonline.com"
+        )
+    except ExpiredSignatureError:
+        current_app.logger.warning(
+            "The JWT token has expired: {}".format(str(e)))
+        abort(400)
+    except JWTError as e:
+        current_app.logger.warning(
+            "The JWT signature was invalid: {}".format(str(e)))
+        abort(400)
+    except JWTClaimsError as e:
+        try:
+            return jwt.decode(
+                jwt_token,
+                jwk_set,
+                algorithms=jwk_set["alg"],
+                issuer="https://login.eveonline.com"
+            )
+        except JWTClaimsError as e:
+            current_app.logger.warning("The issuer claim was not from login.eveonline.com or "
+                                       "https://login.eveonline.com: {}".format(str(e)))
+            abort(400)
+
