@@ -5,7 +5,7 @@ import requests
 from flask import current_app, abort
 from flask_login import UserMixin
 
-from evelogi.extensions import db
+from evelogi.extensions import db, cache
 from evelogi.utils import get_esi_data, validate_eve_jwt
 
 class User(db.Model, UserMixin):
@@ -70,8 +70,8 @@ class Character_(db.Model):
             abort(res.status_code)
         return data
 
+    @cache.memoize(1000)
     def get_access_token(self):
-        #TODO: caching
         form_values = {
             "grant_type": "refresh_token",
             "refresh_token": self.refresh_tokens[0].token
