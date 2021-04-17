@@ -84,3 +84,28 @@ def validate_eve_jwt(jwt_token):
                                        "https://login.eveonline.com: {}".format(str(e)))
             abort(400)
 
+def get_esi_data(path):
+    res = requests.get(path)
+
+    if res.status_code == 200:
+        data = res.json()
+
+        pages = res.headers.get("x-pages")
+        if not pages:
+            return data
+        
+        current_app.logger.debug("x-pages: {}".format(pages))
+        for i in range(1, int(pages) + 1):
+            res = requests.get(path + "&page={}".format(i))
+            if res.status_code == 200:
+                data += res.json()
+                current_app.logger.debug("{}".format(i))
+            else:
+                current_app.logger.warning(
+                    "\nSSO response JSON is: {}".format(res.json()))
+                abort(res.status_code)
+        return data
+    else:
+        current_app.logger.warning(
+            "\nSSO response JSON is: {}".format(res.json()))
+        abort(res.status_code)

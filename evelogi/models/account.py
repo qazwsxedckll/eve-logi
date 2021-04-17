@@ -6,7 +6,7 @@ from flask import current_app, abort
 from flask_login import UserMixin
 
 from evelogi.extensions import db
-from evelogi.utils import validate_eve_jwt
+from evelogi.utils import get_esi_data, validate_eve_jwt
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True) 
@@ -71,6 +71,7 @@ class Character_(db.Model):
         return data
 
     def get_access_token(self):
+        #TODO: caching
         form_values = {
             "grant_type": "refresh_token",
             "refresh_token": self.refresh_tokens[0].token
@@ -124,3 +125,9 @@ class Structure(db.Model):
 
     character_id = db.Column(db.Integer, db.ForeignKey('character_.id'))
     character = db.relationship('Character_', back_populates='structures')
+
+    def get_structure_name(self):
+        path = 'https://esi.evetech.net/latest/universe/structures/' + str(self.structure_id) +'/?datasource=tranquility&token=' + self.character.get_access_token()
+        data = get_esi_data(path)
+        current_app.logger.debug(data)
+        return data

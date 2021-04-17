@@ -4,5 +4,5 @@ from wtforms.validators import DataRequired
 
 
 class TradeGoodsForm(FlaskForm):
-    solar_system = SelectField('SolarSystem', coerce=int, validators=[DataRequired()])
+    structure = SelectField('Market', coerce=int, validators=[DataRequired()])
     submit = SubmitField('Submit')

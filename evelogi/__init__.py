@@ -16,7 +16,6 @@ from evelogi.blueprints.main import main_bp
 from evelogi.blueprints.trade import trade_bp
 from evelogi.models.account import User, Character_, RefreshToken, Structure
 
-
 def create_app():
     config_name = os.getenv('FLASK_CONFIG', 'development')
 
@@ -56,6 +55,7 @@ def register_extensions(app):
     db.init_app(app)
     with app.app_context():
         Base.prepare(db.engine, reflect=True)
+        SolarSystems = Base.classes.mapSolarSystems
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
