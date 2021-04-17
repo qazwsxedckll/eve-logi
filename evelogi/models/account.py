@@ -25,7 +25,8 @@ class Character_(db.Model):
     refresh_tokens = db.relationship('RefreshToken', cascade='all, delete-orphan')
 
     structures = db.relationship('Structure',
-                                 back_populates='character')
+                                 back_populates='character',
+                                 cascade='all, delete-orphan')
 
     def get_access_token(self):
         form_values = {

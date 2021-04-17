@@ -9,7 +9,7 @@ import click
 from flask import Flask
 from flask.logging import default_handler
 
-from evelogi.extensions import db, migrate, login_manager, cache, Base
+from evelogi.extensions import db, migrate, login_manager, cache, Base, csrf
 from evelogi.settings import config
 from evelogi.blueprints.account import account_bp
 from evelogi.blueprints.main import main_bp
@@ -60,6 +60,7 @@ def register_extensions(app):
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     cache.init_app(app)
+    csrf.init_app(app)
 
 
 def register_blueprints(app):

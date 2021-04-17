@@ -3,12 +3,14 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_caching import Cache
 from sqlalchemy.ext.automap import automap_base
+from flask_wtf.csrf import CSRFProtect
 
 db = SQLAlchemy()
 Base = automap_base()
 migrate = Migrate()
 login_manager = LoginManager()
 cache = Cache()
+csrf = CSRFProtect()
 
 from evelogi.models.account import User
 

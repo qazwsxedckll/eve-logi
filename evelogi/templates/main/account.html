@@ -35,9 +35,9 @@
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap">
                                 Brokers Fee
                             </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <!-- TODO: need prettify -->
-                                <a href="{{ url_for('account.add_structure') }}">&plus;</a>
+                            <th scope="col"
+                                class="px-6 py-3 text-right text-xs font-medium text-green-500 tracking-wider whitespace-nowrap">
+                                <a href="{{ url_for('account.add_structure') }}">Add Structure</a>
                             </th>
                         </tr>
                     </thead>
@@ -45,28 +45,48 @@
                         {% for structure in structures %}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {{ structure.name }}
+                                <div class="text-sm text-gray-900">
+                                    {{ structure.name }}
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {{ structure.jita_to_fee }}
+                                <div class="text-sm text-gray-900">
+                                    {{ structure.jita_to_fee }}
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {{ structure.jita_to_collateral }}
+                                <div class="text-sm text-gray-900">
+                                    {{ structure.jita_to_collateral }}%
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {{ structure.to_jita_fee }}
+                                <div class="text-sm text-gray-900">
+                                    {{ structure.to_jita_fee }}
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {{ structure.to_jita_collateral }}
+                                <div class="text-sm text-gray-900">
+                                    {{ structure.to_jita_collateral }}%
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {{ structure.sales_tax }}
+                                <div class="text-sm text-gray-900">
+                                    {{ structure.sales_tax }}%
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {{ structure.brokers_fee }}
+                                <div class="text-sm text-gray-900">
+                                    {{ structure.brokers_fee }}%
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="#" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                <a href="{{ url_for('account.edit_structure', id=structure.id) }}"
+                                    class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                <form action="{{ url_for('account.del_structure', id=structure.id) }}" method="post">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="text-red-600 hover:text-red-900"
+                                        onclick="return confirm('Are you sure?')">Delete</button>
+                                </form>
                             </td>
                         </tr>
                         {% endfor %}
@@ -77,38 +97,74 @@
     </div>
 </div>
 
-<div
-    class="container mx-auto mt-10 bg-white text-center h-auto max-w-xs sm:max-w-md lg:max-w-2xl rounded-xl border-gray-800 border-4 border-solid">
-    <table class="table-auto">
-        <thead>
-            <tr>
-                <th>Character</th>
-                <th>&nbsp;</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for character in current_user.characters %}
-            <tr>
-                <td>{{ character.name }}</td>
-                <td><a href="#"
-                        class="inline-block transition duration-150 ease-in-out hover:text-white transform hover:scale-110 hover:bg-red-300
-            focus:outline-none rounded-lg text-gray-100 font-extrabold bg-red-500 px-10 py-3 shadow-lg tracking-wider active:bg-red-800">Remove</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <div class="mx-auto mt-20 h-40 w-72">
-        <a href="{{ eve_oauth_url() }}"
-            class="inline-block transition duration-150 ease-in-out hover:text-white transform hover:scale-110 hover:bg-green-300
-            focus:outline-none rounded-lg text-gray-100 font-extrabold bg-green-500 px-10 py-3 shadow-lg tracking-wider active:bg-green-800">
-            Add Characters
-        </a>
-        <a href="{{ url_for('account.logout') }}"
-            class="inline-block transition duration-150 ease-in-out hover:text-white transform hover:scale-110 hover:bg-red-300
-            focus:outline-none rounded-lg text-gray-100 font-extrabold bg-red-500 px-10 py-3 shadow-lg tracking-wider active:bg-red-800">
-            Logout
-        </a>
+<div class="block" aria-hidden="true">
+    <div class="py-5">
+        <div class="border-t border-gray-200"></div>
     </div>
+</div>
+
+<div class="flex flex-col">
+    <div class="my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+        <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+            <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap">
+                                Character Name
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap">
+                                Status
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right text-xs font-medium text-green-500 tracking-wider whitespace-nowrap">
+                                <!-- TODO: need prettify -->
+                                <a href="{{ eve_oauth_url() }}">Add Character</a>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for character in current_user.characters %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ character.name }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span
+                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <form action="{{ url_for('account.del_character', id=character.id) }}" method="post">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    {% if current_user.characters|length == 1 %}
+                                    <button type="submit" class="text-gray-500" disabled>Delete</button>
+                                    {% else %}
+                                    <button type="submit" class="text-red-600 hover:text-red-900"
+                                        onclick="return confirm('Are you sure?')">Delete</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="flex justify-center mt-10">
+<div
+    class="inline-block transition duration-150 ease-in-out hover:text-white transform hover:scale-110 hover:bg-red-300
+            focus:outline-none rounded-lg text-gray-100 font-extrabold bg-red-500 px-10 py-3 shadow-lg tracking-wider active:bg-red-800">
+    <a href="{{ url_for('account.logout') }}">
+        Logout
+    </a>
+</div>
 </div>
 {% endblock main %}

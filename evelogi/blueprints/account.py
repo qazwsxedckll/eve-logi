@@ -121,6 +121,13 @@ def logout():
     logout_user()
     return redirect(url_for('main.index'))
 
+@account_bp.route('/character/del/<int:id>', methods=['POST'])
+@login_required
+def del_character(id):
+    character = Character_.query.get_or_404(id)
+    db.session.commit()
+    db.session.delete(character)
+    return redirect(url_for('main.account'))
 
 def validate_eve_jwt(jwt_token):
     """Validate a JWT token retrieved from the EVE SSO.
@@ -195,10 +202,7 @@ def add_structure():
         sales_tax = form.sales_tax.data
         brokers_fee = form.brokers_fee.data
         character_id = form.character_id.data
-        character = Character_.query.get(character_id)
-        if character is None:
-            current_app.logger.error('character with id {} not found.'.format(character_id))
-            abort(400)
+        character = Character_.query.get_or_404(character_id)
         structure = Structure(structure_id=structure_id,
                               name=name,
                               jita_to_fee=jita_to_fee,
@@ -214,3 +218,42 @@ def add_structure():
         return redirect(url_for('main.account'))
     return render_template('main/structure.html', form=form)
 
+@account_bp.route('/structure/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_structure(id):
+    structure = Structure.query.get_or_404(id)
+    characters = current_user.characters
+    choices = [(character.id, character.name)
+               for character in characters]
+    form = StructureForm()
+    form.character_id.choices = choices
+    if form.validate_on_submit():
+        structure.structure_id = form.structure_id.data
+        structure.name = form.name.data
+        structure.jita_to_fee = form.jita_to_fee.data
+        structure.jita_to_collateral = form.jita_to_collateral.data
+        structure.to_jita_fee = form.to_jita_fee.data
+        structure.to_jita_collateral = form.to_jita_collateral.data
+        structure.sales_tax = form.sales_tax.data
+        structure.brokers_fee = form.brokers_fee.data
+        structure.character_id = form.character_id.data
+        db.session.commit()
+        return redirect(url_for('main.account'))
+    form.structure_id.data=structure.structure_id
+    form.name.data = structure.name
+    form.jita_to_fee.data = structure.jita_to_fee
+    form.jita_to_collateral.data = structure.jita_to_collateral
+    form.to_jita_fee.data = structure.to_jita_fee
+    form.to_jita_collateral.data = structure.to_jita_collateral
+    form.sales_tax.data = structure.sales_tax
+    form.brokers_fee.data = structure.brokers_fee
+    form.character_id.data = structure.character_id
+    return render_template('main/structure.html', form=form)
+
+@account_bp.route('/structure/del/<int:id>', methods=['POST'])
+@login_required
+def del_structure(id):
+    structure = Structure.query.get_or_404(id)
+    db.session.delete(structure)
+    db.session.commit()
+    return redirect(url_for('main.account'))
