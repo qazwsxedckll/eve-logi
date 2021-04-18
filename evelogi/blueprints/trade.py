@@ -22,29 +22,9 @@ def trade():
     else:
         structures = [
             structure for character in current_user.characters for structure in character.structures]
-        # sturctures_unique = {'structure': structure,
-        #                     'structure_name': structure_name})
-        structures_unique = []
-        for structure in structures:
-            flag = False
-            for item in structures_unique:
-                if structure.structure_id == item['structure'].structure_id:
-                    flag = True
-                    break
-            if flag == False:
-                # get structure name
-                path = 'https://esi.evetech.net/latest/universe/structures/' + \
-                    str(structure.structure_id) + '/?datasource=tranquility&token=' + \
-                    structure.character.get_access_token()
-                structure_data = get_esi_data(path)
-                structure_name = structure_data['name']
-                solar_system_id = structure_data['solar_system_id']
 
-                structures_unique.append(
-                    {'structure': structure, 'structure_name': structure_name})
-
-        choices = [(item['structure'].id, item['structure_name'])
-                   for item in structures_unique]
+        choices = [(structure.id, structure.get_structure_data('name'))
+                   for structure in structures]
         form = TradeGoodsForm()
         form.structure.choices = choices
         if form.validate_on_submit():
@@ -55,12 +35,11 @@ def trade():
             InvTypes = Base.classes.invTypes
             InvVolumes = Base.classes.invVolumes
 
-            region_id = db.session.query(
-                SolarSystems).get(solar_system_id).regionID
-
             structure = Structure.query.get(form.structure.data)
-            structure_orders = get_structure_orders(
-                structure.structure_id, structure.character)
+            structure_orders = structure.get_structure_orders()
+
+            region_id = db.session.query(
+                SolarSystems).get(structure.get_structure_data('solar_system_id')).regionID
 
             records = []
             for type_id in type_ids:
@@ -119,16 +98,6 @@ def jita_sell_orders():
     # TODO:try coroutines
     path = "https://esi.evetech.net/latest/markets/10000002/orders/?datasource=tranquility&order_type=sell"
     return get_esi_data(path)
-
-
-def get_structure_orders(structure_id, character):
-    """Retrive orders in a structure.
-    """
-    path = "https://esi.evetech.net/latest/markets/structures/" + \
-        str(structure_id) + "/?datasource=tranquility&token=" + \
-        character.get_access_token()
-    return get_esi_data(path)
-
 
 def get_region_order_history_by_id(type_id, region_id):
     """Retrive order history in a region by type id

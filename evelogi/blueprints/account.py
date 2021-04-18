@@ -3,7 +3,7 @@ import base64
 import requests
 import time
 
-from flask import Blueprint
+from flask import Blueprint, flash
 from flask.templating import render_template
 from flask import request, current_app, abort, redirect, url_for
 
@@ -13,6 +13,7 @@ from evelogi.models.account import RefreshToken, Character_, User, Structure
 from evelogi.extensions import db
 from evelogi.utils import redirect_back, validate_eve_jwt
 from evelogi.forms.account import StructureForm
+from evelogi.exceptions import GetESIDataError
 
 account_bp = Blueprint('account', __name__)
 
@@ -136,6 +137,14 @@ def add_structure():
     form.character_id.choices = choices
     if form.validate_on_submit():
         structure_id = form.structure_id.data
+
+        structures = [
+            structure for character in current_user.characters for structure in character.structures]
+        for item in structures:
+            if item.structure_id == structure_id:
+                flash('Add structure failed. Sturcture already exists.')
+                return render_template('main/structure.html', form=form)
+
         name = form.name.data
         jita_to_fee = form.jita_to_fee.data
         jita_to_collateral = form.jita_to_collateral.data
@@ -155,6 +164,12 @@ def add_structure():
                               brokers_fee=brokers_fee,
                               character=character
                               )
+        try:
+            structure.get_structure_name()
+        except GetESIDataError as e:
+            current_app.logger.debug(e)
+            flash('Add structure failed, Check structure id or access control.')
+            return render_template('main/structure.html', form=form)
         db.session.add(structure)
         db.session.commit()
         return redirect(url_for('main.account'))
@@ -170,7 +185,17 @@ def edit_structure(id):
     form = StructureForm()
     form.character_id.choices = choices
     if form.validate_on_submit():
+        former_strucure_id = structure.structure_id
         structure.structure_id = form.structure_id.data
+
+        structures = [
+            structure for character in current_user.characters for structure in character.structures]
+        for item in structures:
+            if item.structure_id == structure.structure_id:
+                form.structure_id.data = former_strucure_id
+                flash('Edit structure failed. Sturcture already exists.')
+                return render_template('main/structure.html', form=form)
+
         structure.name = form.name.data
         structure.jita_to_fee = form.jita_to_fee.data
         structure.jita_to_collateral = form.jita_to_collateral.data
@@ -179,8 +204,16 @@ def edit_structure(id):
         structure.sales_tax = form.sales_tax.data
         structure.brokers_fee = form.brokers_fee.data
         structure.character_id = form.character_id.data
+
+        try:
+            structure.get_structure_name()
+        except GetESIDataError as e:
+            form.structure_id.data = former_strucure_id
+            flash('Edit structure failed, Check structure id or access control.')
+            return render_template('main/structure.html', form=form)
         db.session.commit()
         return redirect(url_for('main.account'))
+
     form.structure_id.data=structure.structure_id
     form.name.data = structure.name
     form.jita_to_fee.data = structure.jita_to_fee

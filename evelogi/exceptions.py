@@ -1,0 +1,2 @@
+class GetESIDataError(Exception):
+    pass

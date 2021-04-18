@@ -6,6 +6,8 @@ from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
 
 from flask import request, redirect, url_for, current_app, abort
 
+from evelogi.exceptions import GetESIDataError
+
 def is_safe_url(target):
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
@@ -103,9 +105,9 @@ def get_esi_data(path):
             else:
                 current_app.logger.warning(
                     "\nSSO response JSON is: {}".format(res.json()))
-                abort(res.status_code)
+                raise GetESIDataError(res.json())
         return data
     else:
         current_app.logger.warning(
             "\nSSO response JSON is: {}".format(res.json()))
-        abort(res.status_code)
+        raise GetESIDataError(res.json())

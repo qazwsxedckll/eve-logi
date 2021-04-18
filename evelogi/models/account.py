@@ -8,10 +8,12 @@ from flask_login import UserMixin
 from evelogi.extensions import db, cache
 from evelogi.utils import get_esi_data, validate_eve_jwt
 
+
 class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True) 
+    id = db.Column(db.Integer, primary_key=True)
     subscription = db.Column(db.Integer, default=0)
-    characters = db.relationship('Character_', back_populates='user', cascade='all, delete-orphan')
+    characters = db.relationship(
+        'Character_', back_populates='user', cascade='all, delete-orphan')
 
     def orders(self):
         """Retrive orders of a user.
@@ -23,6 +25,8 @@ class User(db.Model, UserMixin):
         return data
 
 # use character as table name will cause unknown error in mysql
+
+
 class Character_(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True, nullable=False)
@@ -32,7 +36,8 @@ class Character_(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', back_populates="characters")
 
-    refresh_tokens = db.relationship('RefreshToken', cascade='all, delete-orphan')
+    refresh_tokens = db.relationship(
+        'RefreshToken', cascade='all, delete-orphan')
 
     structures = db.relationship('Structure',
                                  back_populates='character',
@@ -42,7 +47,9 @@ class Character_(db.Model):
         """Retrive orders of a character.
         """
         access_token = self.get_access_token()
-        path = "https://esi.evetech.net/latest/characters/" + str(self.character_id) + "/orders/?datasource=tranquility&token=" + access_token
+        path = "https://esi.evetech.net/latest/characters/" + \
+            str(self.character_id) + \
+            "/orders/?datasource=tranquility&token=" + access_token
         data = []
 
         res = requests.get(path)
@@ -80,7 +87,8 @@ class Character_(db.Model):
         client_id = current_app.config['CLIENT_ID']
         eve_app_secret = os.environ.get('EVELOGI_SECRET_KEY')
         user_pass = "{}:{}".format(client_id, eve_app_secret)
-        basic_auth = base64.urlsafe_b64encode(user_pass.encode('utf-8')).decode()
+        basic_auth = base64.urlsafe_b64encode(
+            user_pass.encode('utf-8')).decode()
         auth_header = "Basic {}".format(basic_auth)
 
         headers = {
@@ -99,11 +107,12 @@ class Character_(db.Model):
             data = res.json()
             access_token = data['access_token']
             validate_eve_jwt(access_token)
-            return access_token 
+            return access_token
         else:
             current_app.logger.warning(
                 "\nSSO response JSON is: {}".format(res.json()))
             abort(res.status_code)
+
 
 class RefreshToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -111,6 +120,7 @@ class RefreshToken(db.Model):
     scope = db.Column(db.Text)
 
     character_id = db.Column(db.Integer, db.ForeignKey('character_.id'))
+
 
 class Structure(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -126,8 +136,22 @@ class Structure(db.Model):
     character_id = db.Column(db.Integer, db.ForeignKey('character_.id'))
     character = db.relationship('Character_', back_populates='structures')
 
-    def get_structure_name(self):
-        path = 'https://esi.evetech.net/latest/universe/structures/' + str(self.structure_id) +'/?datasource=tranquility&token=' + self.character.get_access_token()
+    @cache.memoize(86400)
+    def _get_structure_data(self):
+        path = 'https://esi.evetech.net/latest/universe/structures/' + \
+            str(self.structure_id) + '/?datasource=tranquility&token=' + \
+            self.character.get_access_token()
         data = get_esi_data(path)
-        current_app.logger.debug(data)
         return data
+
+    def get_structure_data(self, field):
+        data = self._get_structure_data()
+        return data[field]
+
+    def get_structure_orders(self):
+        """Retrive orders in a structure.
+        """
+        path = "https://esi.evetech.net/latest/markets/structures/" + \
+            str(self.structure_id) + "/?datasource=tranquility&token=" + \
+            self.character.get_access_token()
+        return get_esi_data(path)
