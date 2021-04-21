@@ -22,6 +22,9 @@ class DevelopmentConfig(BaseConfig):
     CACHE_TYPE="RedisCache"
     CACHE_DEFAULT_TIMEOUT=300
 
+    #Trade
+    HISTORY_VOLUME_UPDATE_INTERVAL=30
+
 class ProductionConfig(BaseConfig):
     pass
 

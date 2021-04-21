@@ -5,11 +5,13 @@ from flask import Blueprint, render_template, redirect
 from flask_login import login_required, current_user
 from flask.globals import current_app
 from flask_migrate import history
+from sqlalchemy import and_
 
 from evelogi.utils import eve_oauth_url, get_esi_data
 from evelogi.extensions import cache, db, Base
 from evelogi.forms.trade import TradeGoodsForm
 from evelogi.models.account import Structure
+from evelogi.models.trade import HistoryVolume
 
 trade_bp = Blueprint('trade', __name__)
 
@@ -29,7 +31,7 @@ def trade():
         form.structure.choices = choices
         if form.validate_on_submit():
             jita_sell_data = get_jita_sell_orders()
-            type_ids = list({item['type_id'] for item in jita_sell_data})[:10]
+            type_ids = {item['type_id'] for item in jita_sell_data}
 
             my_orders = current_user.get_orders()
             filter(lambda item: item.is_buy_order == False, my_orders)
@@ -76,7 +78,7 @@ def trade():
                 sales_cost = local_price * \
                     (structure.sales_tax * 0.01 + structure.brokers_fee * 0.01)
                 profit_per_item = local_price - jita_sell_price - jita_to_cost - sales_cost
-                history_volume = get_item_history_volume(type_id, region_id)
+                history_volume = item_history_volume(type_id, region_id)
                 estimate_profit = profit_per_item * history_volume
                 margin = profit_per_item / \
                     (jita_sell_price + jita_to_cost + sales_cost)
@@ -84,13 +86,14 @@ def trade():
                 records.append({'type_id': type_id,
                                 'type_name': type_name,
                                 'jita_sell_price': jita_sell_price,
-                                'history_volume': get_item_history_volume(type_id, region_id),
+                                'history_volume': history_volume,
                                 'local_price': local_price,
                                 'estimate_profit': estimate_profit,
                                 'margin': margin,
                                 'stockout': stockout
                                 })
-            records.sort(key=lambda item: item.get('estimate_profit'), reverse=True)
+            records.sort(key=lambda item: item.get(
+                'estimate_profit'), reverse=True)
 
             return render_template('trade/trade.html', form=form, records=records)
         return render_template('trade/trade.html', form=form)
@@ -105,6 +108,7 @@ def get_jita_sell_orders():
     # TODO:try coroutines
     path = "https://esi.evetech.net/latest/markets/10000002/orders/?datasource=tranquility&order_type=sell"
     return get_esi_data(path)
+
 
 def get_region_order_history_by_id(type_id, region_id):
     """Retrive order history in a region by type id
@@ -121,3 +125,21 @@ def get_item_history_volume(type_id, region_id, days=30):
         if date.today() - date.fromisoformat(item['date']) <= timedelta(days=days):
             volume += item['volume']
     return volume
+
+
+def item_history_volume(type_id, region_id):
+    history_volume = HistoryVolume.query.filter(
+        and_(HistoryVolume.type_id == type_id, HistoryVolume.region_id == region_id))
+    if history_volume is None:
+        volume = get_item_history_volume(type_id, region_id)
+        history_volume = HistoryVolume(
+            type_id=type_id, region_id=region_id, volume=volume, update_time=date.today())
+        db.session.add(history_volume)
+        db.session.commit()
+    else:
+        if date.today() - history_volume.update_time > timedelta(days=current_app.config['HISTORY_VOLUME_UPDATE_INTERVL']):
+            volume = get_item_history_volume(type_id, region_id)
+            history_volume.volume = volume
+            history_volume.update_time = date.today()
+            db.session.commit()
+    return history_volume.volume
