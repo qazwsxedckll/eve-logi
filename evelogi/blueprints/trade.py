@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import math
 
 from flask import Blueprint, render_template, redirect, flash
 
@@ -30,9 +31,10 @@ def trade():
                    for structure in structures]
         form = TradeGoodsForm()
         form.structure.choices = choices
+        form.multiple.choices = [(i, i) for i in range(1,6)]
         if form.validate_on_submit():
             jita_sell_data = get_jita_sell_orders()
-            type_ids = list({item['type_id'] for item in jita_sell_data})
+            type_ids = list({item['type_id'] for item in jita_sell_data})[:200]
 
             my_orders = current_user.get_orders()
             filter(lambda item: item['is_buy_order'] == False, my_orders)
@@ -98,7 +100,7 @@ def trade():
                 records.append({'type_id': type_id,
                                 'type_name': type_name,
                                 'jita_sell_price': jita_sell_price,
-                                'history_volume': month_volume,
+                                'daily_volume': math.ceil((month_volume / 30) * form.multiple.data),
                                 'local_price': local_price,
                                 'estimate_profit': estimate_profit,
                                 'margin': margin,
@@ -108,6 +110,8 @@ def trade():
                 'estimate_profit'), reverse=True)
 
             return render_template('trade/trade.html', form=form, records=records)
+        form.multiple.data = 3
+        form.volume_filter.data = 1
         return render_template('trade/trade.html', form=form)
 
 
