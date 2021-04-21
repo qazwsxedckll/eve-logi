@@ -97,14 +97,15 @@ def get_esi_data(path):
             return data
         
         current_app.logger.debug("x-pages: {}".format(pages))
-        for i in range(1, int(pages) + 1):
+        for i in range(2, int(pages) + 1):
             res = requests.get(path + "&page={}".format(i))
+            current_app.logger.debug("{}".format(i))
             if res.status_code == 200:
                 data += res.json()
-                current_app.logger.debug("{}".format(i))
             else:
                 current_app.logger.warning(
-                    "\nSSO response JSON is: {}".format(res.json()))
+                    "\nstatus code: {} \
+                    \nSSO response JSON is: {}".format(res.status_code, res.json()))
                 raise GetESIDataError(res.json())
         return data
     else:

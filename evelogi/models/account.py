@@ -21,7 +21,7 @@ class User(db.Model, UserMixin):
         characters = self.characters
         data = []
         for character in characters:
-            data.append(character.orders())
+            data += character.get_orders()
         return data
 
 # use character as table name will cause unknown error in mysql

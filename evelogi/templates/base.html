@@ -45,6 +45,17 @@
         </a>
         {% endif %}
     </div>
+    <div class="flex flex-col mt-10">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="mb-3 text-white bg-red-500">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
     {% block main %} {% endblock main %}
 </body>
 

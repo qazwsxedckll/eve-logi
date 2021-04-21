@@ -1,17 +1,6 @@
 {% extends 'base.html' %}
 {% block main %}
 <div class="mt-10">
-<div class="flex flex-col">
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    {% for message in messages %}
-    <div class="mb-3 text-white bg-red-500">
-        {{ message }}
-    </div>
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
-</div>
     <div class="md:grid md:grid-cols-3 md:gap-6">
         <div class="md:col-span-3">
             <form action="{{ request.full_path }}" method="POST">
@@ -48,7 +37,8 @@
                             </div>
                             <div class="col-span-6 sm:col-span-3">
                                 {{ form.jita_to_collateral.label(class="block text-sm font-medium text-gray-700") }}
-                                {{ form.jita_to_collateral(value=0, class="mt-1 block w-full py-2 px-3 border border-gray-300
+                                {{ form.jita_to_collateral(value=0, class="mt-1 block w-full py-2 px-3 border
+                                border-gray-300
                                 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500
                                 focus:border-indigo-500 sm:text-sm") }}
                                 {% for error in form.jita_to_collateral.errors %}
@@ -57,7 +47,8 @@
                             </div>
                             <div class="col-span-6 sm:col-span-3">
                                 {{ form.to_jita_fee.label(class="block text-sm font-medium text-gray-700") }}
-                                {{ form.to_jita_fee(value=0, class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white
+                                {{ form.to_jita_fee(value=0, class="mt-1 block w-full py-2 px-3 border border-gray-300
+                                bg-white
                                 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
                                 sm:text-sm") }}
                                 {% for error in form.to_jita_fee.errors %}
@@ -66,7 +57,8 @@
                             </div>
                             <div class="col-span-6 sm:col-span-3">
                                 {{ form.to_jita_collateral.label(class="block text-sm font-medium text-gray-700") }}
-                                {{ form.to_jita_collateral(value=0, class="mt-1 block w-full py-2 px-3 border border-gray-300
+                                {{ form.to_jita_collateral(value=0, class="mt-1 block w-full py-2 px-3 border
+                                border-gray-300
                                 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500
                                 focus:border-indigo-500 sm:text-sm") }}
                                 {% for error in form.to_jita_collateral.errors %}
@@ -75,7 +67,8 @@
                             </div>
                             <div class="col-span-6 sm:col-span-3">
                                 {{ form.sales_tax.label(class="block text-sm font-medium text-gray-700") }}
-                                {{ form.sales_tax(value=0, class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white
+                                {{ form.sales_tax(value=0, class="mt-1 block w-full py-2 px-3 border border-gray-300
+                                bg-white
                                 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
                                 sm:text-sm") }}
                                 {% for error in form.sales_tax.errors %}
@@ -84,7 +77,8 @@
                             </div>
                             <div class="col-span-6 sm:col-span-3">
                                 {{ form.brokers_fee.label(class="block text-sm font-medium text-gray-700") }}
-                                {{ form.brokers_fee(value=0, class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white
+                                {{ form.brokers_fee(value=0, class="mt-1 block w-full py-2 px-3 border border-gray-300
+                                bg-white
                                 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
                                 sm:text-sm") }}
                                 {% for error in form.brokers_fee.errors %}

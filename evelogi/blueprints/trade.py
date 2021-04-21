@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from flask import Blueprint, render_template, redirect
+from flask import Blueprint, render_template, redirect, flash
 
 from flask_login import login_required, current_user
 from flask.globals import current_app
@@ -11,7 +11,8 @@ from evelogi.utils import eve_oauth_url, get_esi_data
 from evelogi.extensions import cache, db, Base
 from evelogi.forms.trade import TradeGoodsForm
 from evelogi.models.account import Structure
-from evelogi.models.trade import HistoryVolume
+from evelogi.models.trade import MonthVolume
+from evelogi.exceptions import GetESIDataError
 
 trade_bp = Blueprint('trade', __name__)
 
@@ -31,10 +32,10 @@ def trade():
         form.structure.choices = choices
         if form.validate_on_submit():
             jita_sell_data = get_jita_sell_orders()
-            type_ids = {item['type_id'] for item in jita_sell_data}
+            type_ids = list({item['type_id'] for item in jita_sell_data})
 
             my_orders = current_user.get_orders()
-            filter(lambda item: item.is_buy_order == False, my_orders)
+            filter(lambda item: item['is_buy_order'] == False, my_orders)
             my_sell_order_ids = {item['type_id'] for item in my_orders}
             for id in type_ids:
                 if id in my_sell_order_ids:
@@ -52,6 +53,16 @@ def trade():
 
             records = []
             for type_id in type_ids:
+                try:
+                    month_volume = item_month_volume(type_id, region_id)
+                except GetESIDataError as e:
+                    pass
+                    # type_name = db.session.query(InvTypes).get(type_id).typeName
+                    # flash("{}: {}".format(type_name, e))
+
+                if month_volume == 0:
+                    continue
+
                 stockout = False
 
                 jita_sell_price = float('inf')
@@ -78,15 +89,16 @@ def trade():
                 sales_cost = local_price * \
                     (structure.sales_tax * 0.01 + structure.brokers_fee * 0.01)
                 profit_per_item = local_price - jita_sell_price - jita_to_cost - sales_cost
-                history_volume = item_history_volume(type_id, region_id)
-                estimate_profit = profit_per_item * history_volume
+                if profit_per_item <= 0:
+                    continue
+                estimate_profit = profit_per_item * month_volume
                 margin = profit_per_item / \
                     (jita_sell_price + jita_to_cost + sales_cost)
 
                 records.append({'type_id': type_id,
                                 'type_name': type_name,
                                 'jita_sell_price': jita_sell_price,
-                                'history_volume': history_volume,
+                                'history_volume': month_volume,
                                 'local_price': local_price,
                                 'estimate_profit': estimate_profit,
                                 'margin': margin,
@@ -119,27 +131,29 @@ def get_region_order_history_by_id(type_id, region_id):
 
 
 def get_item_history_volume(type_id, region_id, days=30):
+    current_app.logger.debug('type id: {}'.format(type_id))
     data = get_region_order_history_by_id(type_id, region_id)
-    volume = 0
+    volume = 0.0
     for item in data:
         if date.today() - date.fromisoformat(item['date']) <= timedelta(days=days):
             volume += item['volume']
+    current_app.logger.debug('volume: {}'.format(volume))
     return volume
 
 
-def item_history_volume(type_id, region_id):
-    history_volume = HistoryVolume.query.filter(
-        and_(HistoryVolume.type_id == type_id, HistoryVolume.region_id == region_id))
-    if history_volume is None:
+def item_month_volume(type_id, region_id):
+    month_volume = MonthVolume.query.filter(
+        and_(MonthVolume.type_id == type_id, MonthVolume.region_id == region_id)).first()
+    if month_volume is None:
         volume = get_item_history_volume(type_id, region_id)
-        history_volume = HistoryVolume(
+        month_volume = MonthVolume(
             type_id=type_id, region_id=region_id, volume=volume, update_time=date.today())
-        db.session.add(history_volume)
+        db.session.add(month_volume)
         db.session.commit()
     else:
-        if date.today() - history_volume.update_time > timedelta(days=current_app.config['HISTORY_VOLUME_UPDATE_INTERVL']):
+        if date.today() - month_volume.update_time > timedelta(days=current_app.config['HISTORY_VOLUME_UPDATE_INTERVAL']):
             volume = get_item_history_volume(type_id, region_id)
-            history_volume.volume = volume
-            history_volume.update_time = date.today()
+            month_volume.volume = volume
+            month_volume.update_time = date.today()
             db.session.commit()
-    return history_volume.volume
+    return month_volume.volume

@@ -165,7 +165,7 @@ def add_structure():
                               character=character
                               )
         try:
-            structure.get_structure_name()
+            structure.get_structure_data('name')
         except GetESIDataError as e:
             current_app.logger.debug(e)
             flash('Add structure failed, Check structure id or access control.')
@@ -206,7 +206,7 @@ def edit_structure(id):
         structure.character_id = form.character_id.data
 
         try:
-            structure.get_structure_name()
+            structure.get_structure_data('name')
         except GetESIDataError as e:
             form.structure_id.data = former_strucure_id
             flash('Edit structure failed, Check structure id or access control.')
