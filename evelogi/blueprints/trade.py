@@ -34,7 +34,7 @@ def trade():
         form.multiple.choices = [(i, i) for i in range(1,6)]
         if form.validate_on_submit():
             jita_sell_data = get_jita_sell_orders()
-            type_ids = list({item['type_id'] for item in jita_sell_data})
+            type_ids = list({item['type_id'] for item in jita_sell_data})[:200]
 
             my_orders = current_user.get_orders()
             filter(lambda item: item['is_buy_order'] == False, my_orders)
