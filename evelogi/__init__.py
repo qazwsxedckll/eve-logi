@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 from urllib.parse import urlencode
 
 import click
-from flask import Flask, session
+from flask import Flask, session, abort
 from flask.logging import default_handler
 
 from evelogi.extensions import db, migrate, login_manager, cache, Base, csrf
@@ -15,7 +15,7 @@ from evelogi.settings import config
 from evelogi.blueprints.account import account_bp
 from evelogi.blueprints.main import main_bp
 from evelogi.blueprints.trade import trade_bp
-from evelogi.models.account import User, Character_, RefreshToken, Structure
+from evelogi.models.account import User, Character_
 
 def create_app():
     config_name = os.getenv('FLASK_CONFIG', 'development')
@@ -23,6 +23,9 @@ def create_app():
     app = Flask('evelogi')
     app.config.from_object(config[config_name])
 
+    if app.config['SECRET_KEY'] is None:
+        abort(400)
+        
     register_logger(app)
     register_extensions(app)
     register_blueprints(app)
@@ -61,6 +64,7 @@ def register_extensions(app):
     login_manager.login_view = "auth.login"
     cache.init_app(app)
     csrf.init_app(app)
+    
 
 
 def register_blueprints(app):

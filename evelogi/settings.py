@@ -6,8 +6,9 @@ class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 class DevelopmentConfig(BaseConfig):
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
-    SECRET_KEY = os.getenv('SECERT_KEY', 'secret string')
+    SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URL')
+    SECRET_KEY=os.getenv('SECERT_KEY', 'secret string')
+    SSL_DISABLED=True
     
     #Oauth
     OAUTH_URL='https://login.eveonline.com/v2/oauth/authorize?'
@@ -25,7 +26,8 @@ class DevelopmentConfig(BaseConfig):
 
 class ProductionConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
-    SECRET_KEY = os.getenv['SECRET_KEY']
+    SECRET_KEY=os.getenv('SECERT_KEY')
+    SSL_DISABLED=False
     
     #Oauth
     OAUTH_URL='https://login.eveonline.com/v2/oauth/authorize?'
