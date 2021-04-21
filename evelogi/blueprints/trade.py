@@ -19,7 +19,6 @@ trade_bp = Blueprint('trade', __name__)
 
 
 @trade_bp.route('/trade', methods=['GET', 'POST'])
-@login_required
 def trade():
     if not current_user.is_authenticated:
         return redirect(eve_oauth_url())
@@ -58,9 +57,8 @@ def trade():
                 try:
                     month_volume = item_month_volume(type_id, region_id)
                 except GetESIDataError as e:
-                    pass
-                    # type_name = db.session.query(InvTypes).get(type_id).typeName
-                    # flash("{}: {}".format(type_name, e))
+                    db.session.add(MonthVolume(type_id, region_id, 0, date.today()))
+                    db.session.commit()
 
                 if month_volume == 0:
                     continue
@@ -110,8 +108,6 @@ def trade():
                 'estimate_profit'), reverse=True)
 
             return render_template('trade/trade.html', form=form, records=records)
-        form.multiple.data = 3
-        form.volume_filter.data = 1
         return render_template('trade/trade.html', form=form)
 
 

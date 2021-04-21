@@ -1,3 +1,4 @@
+from evelogi.utils import eve_oauth_url
 import os
 import logging
 import time
@@ -8,6 +9,7 @@ from urllib.parse import urlencode
 
 import click
 from flask import Flask, session, abort
+from flask.helpers import url_for
 from flask.logging import default_handler
 
 from evelogi.extensions import db, migrate, login_manager, cache, Base, csrf
@@ -61,7 +63,6 @@ def register_extensions(app):
         Base.prepare(db.engine, reflect=True)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    login_manager.login_view = "auth.login"
     cache.init_app(app)
     csrf.init_app(app)
     

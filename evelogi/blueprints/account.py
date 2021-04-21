@@ -120,6 +120,7 @@ def logout():
     logout_user()
     return redirect(url_for('main.index'))
 
+
 @account_bp.route('/character/del/<int:id>', methods=['POST'])
 @login_required
 def del_character(id):
@@ -127,6 +128,7 @@ def del_character(id):
     db.session.commit()
     db.session.delete(character)
     return redirect(url_for('main.account'))
+
 
 @account_bp.route('/structure/add', methods=['GET', 'POST'])
 @login_required
@@ -176,6 +178,7 @@ def add_structure():
         return redirect(url_for('main.account'))
     return render_template('main/structure.html', form=form)
 
+
 @account_bp.route('/structure/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_structure(id):
@@ -186,17 +189,17 @@ def edit_structure(id):
     form = StructureForm()
     form.character_id.choices = choices
     if form.validate_on_submit():
-        former_strucure_id = structure.structure_id
+        if structure.structure_id != form.structure_id.data:
+            structures = [
+                structure for character in current_user.characters for structure in character.structures]
+
+            for item in structures:
+                if item.structure_id == form.structure_id.data:
+                    form.structure_id.data = structure.structure_id
+                    flash('Edit structure failed. Sturcture already exists.')
+                    return render_template('main/structure.html', form=form)
+
         structure.structure_id = form.structure_id.data
-
-        structures = [
-            structure for character in current_user.characters for structure in character.structures]
-        for item in structures:
-            if item.structure_id == structure.structure_id:
-                form.structure_id.data = former_strucure_id
-                flash('Edit structure failed. Sturcture already exists.')
-                return render_template('main/structure.html', form=form)
-
         structure.name = form.name.data
         structure.jita_to_fee = form.jita_to_fee.data
         structure.jita_to_collateral = form.jita_to_collateral.data
@@ -215,7 +218,7 @@ def edit_structure(id):
         db.session.commit()
         return redirect(url_for('main.account'))
 
-    form.structure_id.data=structure.structure_id
+    form.structure_id.data = structure.structure_id
     form.name.data = structure.name
     form.jita_to_fee.data = structure.jita_to_fee
     form.jita_to_collateral.data = structure.jita_to_collateral
@@ -225,6 +228,7 @@ def edit_structure(id):
     form.brokers_fee.data = structure.brokers_fee
     form.character_id.data = structure.character_id
     return render_template('main/structure.html', form=form)
+
 
 @account_bp.route('/structure/del/<int:id>', methods=['POST'])
 @login_required
