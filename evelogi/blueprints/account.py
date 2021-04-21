@@ -3,7 +3,7 @@ import base64
 import requests
 import time
 
-from flask import Blueprint, flash
+from flask import Blueprint, flash, session
 from flask.templating import render_template
 from flask import request, current_app, abort, redirect, url_for
 
@@ -21,10 +21,11 @@ account_bp = Blueprint('account', __name__)
 @account_bp.route('/login/')
 def login():
     state = request.args.get('state')
-    if state is None or state != current_app.config['STATE']:
+    if state is None or state != session['state']:
         current_app.logger.warning('state from eve:{} does not match state sent:{}'.format(
             state, current_app.config['STATE']))
         abort(400)
+    session.pop('state')
 
     code = request.args.get('code')
     client_id = current_app.config['CLIENT_ID']

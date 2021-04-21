@@ -1,12 +1,13 @@
 import os
 import logging
 import time
+import secrets
 
 from logging.handlers import RotatingFileHandler
 from urllib.parse import urlencode
 
 import click
-from flask import Flask
+from flask import Flask, session
 from flask.logging import default_handler
 
 from evelogi.extensions import db, migrate, login_manager, cache, Base, csrf
@@ -76,12 +77,13 @@ def register_template_context(app):
 
     @app.template_global()
     def eve_oauth_url():
+        session['state'] = secrets.token_urlsafe(8)
         params = {
             'response_type': app.config['RESPONSE_TYPE'],
             'redirect_uri': app.config['REDIRECT_URL'],
             'client_id': app.config['CLIENT_ID'],
             'scope': app.config['SCOPE'],
-            'state': app.config['STATE'],
+            'state': session['state'],
         }
 
         return str(app.config['OAUTH_URL'] + urlencode(params))
