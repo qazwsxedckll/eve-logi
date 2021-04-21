@@ -15,7 +15,7 @@ class User(db.Model, UserMixin):
     characters = db.relationship(
         'Character_', back_populates='user', cascade='all, delete-orphan')
 
-    def orders(self):
+    def get_orders(self):
         """Retrive orders of a user.
         """
         characters = self.characters
@@ -43,40 +43,16 @@ class Character_(db.Model):
                                  back_populates='character',
                                  cascade='all, delete-orphan')
 
-    def orders(self):
+    def get_orders(self):
         """Retrive orders of a character.
         """
         access_token = self.get_access_token()
         path = "https://esi.evetech.net/latest/characters/" + \
             str(self.character_id) + \
             "/orders/?datasource=tranquility&token=" + access_token
-        data = []
-
-        res = requests.get(path)
-
-        if res.status_code == 200:
-            data.append(res.json())
-
-            pages = res.headers.get("x-pages")
-            if not pages:
-                return data
-
-            current_app.logger.debug("x-pages: {}".format(pages))
-            for i in range(2, int(pages) + 1):
-                res = requests.get(path + "&page={}".format(i))
-                if res.status_code == 200:
-                    data.append(res.json())
-                    current_app.logger.debug("{}".format(i))
-                else:
-                    current_app.logger.warning(
-                        "\nSSO response JSON is: {}".format(res.json()))
-                    abort(res.status_code)
-        else:
-            current_app.logger.warning(
-                "\nSSO response JSON is: {}".format(res.json()))
-            abort(res.status_code)
+        data = get_esi_data(path)
         return data
-
+    
     @cache.memoize(1000)
     def get_access_token(self):
         form_values = {

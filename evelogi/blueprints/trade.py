@@ -28,8 +28,15 @@ def trade():
         form = TradeGoodsForm()
         form.structure.choices = choices
         if form.validate_on_submit():
-            jita_sell_data = jita_sell_orders()
+            jita_sell_data = get_jita_sell_orders()
             type_ids = list({item['type_id'] for item in jita_sell_data})[:10]
+
+            my_orders = current_user.get_orders()
+            filter(lambda item: item.is_buy_order == False, my_orders)
+            my_sell_order_ids = {item['type_id'] for item in my_orders}
+            for id in type_ids:
+                if id in my_sell_order_ids:
+                    type_ids.remove(id)
 
             SolarSystems = Base.classes.mapSolarSystems
             InvTypes = Base.classes.invTypes
@@ -90,7 +97,7 @@ def trade():
 
 
 @cache.cached(timeout=36000, key_prefix='jita_sell_orders')
-def jita_sell_orders():
+def get_jita_sell_orders():
     """Retrive Jita sell orders. Takes about 5min. Should not be called simultaneously.
     """
     # TODO:should disable others' use if anyone has called the function
