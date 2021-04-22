@@ -1,5 +1,6 @@
 import requests
 import secrets
+from concurrent import futures
 from urllib.parse import urlparse, urljoin, urlencode
 
 from jose import jwt
@@ -88,6 +89,26 @@ def validate_eve_jwt(jwt_token):
                                        "https://login.eveonline.com: {}".format(str(e)))
             abort(400)
 
+def get_multiple_esi_data(to_get):
+    # to_get {params: path}
+    with futures.ThreadPoolExecutor(max_workers=1024) as ex:
+        to_do = {}
+        for id, path in to_get.items():
+            future = ex.submit(requests.get,path)
+            to_do[future] = id
+        i=0
+        for future in futures.as_completed(to_do):
+            res = future.result()
+            current_app.logger.debug(i)
+            i=i+1
+            if res.status_code == 200:
+                to_get[to_do[future]] = res.json()
+            elif res.status_code == 404:
+                to_get[to_do[future]] = None
+            else:
+                raise GetESIDataError(res.json())
+    return to_get
+
 def get_esi_data(path):
     res = requests.get(path)
 
@@ -99,16 +120,25 @@ def get_esi_data(path):
             return data
         
         current_app.logger.debug("x-pages: {}".format(pages))
-        for i in range(2, int(pages) + 1):
-            res = requests.get(path + "&page={}".format(i))
-            current_app.logger.debug("{}".format(i))
-            if res.status_code == 200:
-                data += res.json()
-            else:
-                current_app.logger.warning(
-                    "\nstatus code: {} \
-                    \nSSO response JSON is: {}".format(res.status_code, res.json()))
-                raise GetESIDataError(res.json())
+        with futures.ThreadPoolExecutor(max_workers=32) as executor:
+            to_do = []
+            for i in range(2, int(pages) + 1):
+                future = executor.submit(requests.get, path + "&page={}".format(i))
+                to_do.append(future)
+
+            j = 2
+            for future in futures.as_completed(to_do):
+                res = future.result()
+                current_app.logger.debug("{}".format(j))
+                j = j + 1
+
+                if res.status_code == 200:
+                    data += res.json()
+                else:
+                    current_app.logger.warning(
+                        "\nstatus code: {} \
+                        \nSSO response JSON is: {}".format(res.status_code, res.json()))
+                    raise GetESIDataError(res.json())
         return data
     else:
         current_app.logger.warning(

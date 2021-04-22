@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from concurrent import futures
 import math
 
 from flask import Blueprint, render_template, redirect, flash
@@ -8,7 +9,7 @@ from flask.globals import current_app
 from flask_migrate import history
 from sqlalchemy import and_
 
-from evelogi.utils import eve_oauth_url, get_esi_data
+from evelogi.utils import eve_oauth_url, get_esi_data, get_multiple_esi_data
 from evelogi.extensions import cache, db, Base
 from evelogi.forms.trade import TradeGoodsForm
 from evelogi.models.account import Structure
@@ -30,7 +31,7 @@ def trade():
                    for structure in structures]
         form = TradeGoodsForm()
         form.structure.choices = choices
-        form.multiple.choices = [(i, i) for i in range(1,6)]
+        form.multiple.choices = [(i, i) for i in range(1, 6)]
         if form.validate_on_submit():
             jita_sell_data = get_jita_sell_orders()
             type_ids = list({item['type_id'] for item in jita_sell_data})
@@ -53,12 +54,14 @@ def trade():
                 SolarSystems).get(structure.get_structure_data('solar_system_id')).regionID
 
             records = []
+            month_volumes = get_region_month_volume(type_ids, region_id)
             for type_id in type_ids:
-                try:
-                    month_volume = item_month_volume(type_id, region_id)
-                except GetESIDataError as e:
-                    db.session.add(MonthVolume(type_id, region_id, 0, date.today()))
+                month_volume = month_volumes[type_id]
+                if month_volume is None:
+                    db.session.add(MonthVolume(
+                        type_id=type_id, region_id=region_id, volume=0, update_time=date.today()))
                     db.session.commit()
+                    continue
 
                 if month_volume == 0:
                     continue
@@ -107,7 +110,7 @@ def trade():
             records.sort(key=lambda item: item.get(
                 'estimate_profit'), reverse=True)
 
-            return render_template('trade/trade.html', form=form, records=records)
+            return render_template('trade/trade.html', form=form, records=records[:200])
         return render_template('trade/trade.html', form=form)
 
 
@@ -115,45 +118,60 @@ def trade():
 def get_jita_sell_orders():
     """Retrive Jita sell orders. Takes about 5min. Should not be called simultaneously.
     """
-    # TODO:should disable others' use if anyone has called the function
-    # TODO:data unusable while caching
-    # TODO:try coroutines
     path = "https://esi.evetech.net/latest/markets/10000002/orders/?datasource=tranquility&order_type=sell"
     return get_esi_data(path)
 
+def get_region_month_volume(type_ids, region_id, days=30):
+    result = {}
+    new_to_get = {}
+    outdate_to_get = {}
+    outdate_item = {}
+    for type_id in type_ids:
+        month_volume = MonthVolume.query.filter(
+            and_(MonthVolume.type_id == type_id, MonthVolume.region_id == region_id)).first()
+        if month_volume is None:
+            new_to_get[type_id] = "https://esi.evetech.net/latest/markets/" + \
+                str(region_id) + \
+                "/history/?datasource=tranquility&type_id=" + str(type_id)
+        else:
+            if date.today() - month_volume.update_time > timedelta(days=current_app.config['HISTORY_VOLUME_UPDATE_INTERVAL']):
+                outdate_to_get[type_id] = "https://esi.evetech.net/latest/markets/" + \
+                    str(region_id) + \
+                    "/history/?datasource=tranquility&type_id=" + str(type_id)
+                outdate_item[type_id] = month_volume
+            else:
+                result[type_id] = month_volume.volume
+    
+    current_app.logger.debug("to get: {}".format(len(outdate_to_get)))
+    current_app.logger.debug("to get: {}".format(len(new_to_get)))
+    get_multiple_esi_data(new_to_get)
+    for id, data in new_to_get.items():
+        accumulate_volume = 0.0
+        if data is not None:
+            for daily_volume in data:
+                if date.today() - date.fromisoformat(daily_volume['date']) <= timedelta(days=days):
+                    accumulate_volume += daily_volume['volume']
 
-def get_region_order_history_by_id(type_id, region_id):
-    """Retrive order history in a region by type id
-    """
-    path = "https://esi.evetech.net/latest/markets/" + \
-        str(region_id) + "/history/?datasource=tranquility&type_id=" + str(type_id)
-    return get_esi_data(path)
-
-
-def get_item_history_volume(type_id, region_id, days=30):
-    current_app.logger.debug('type id: {}'.format(type_id))
-    data = get_region_order_history_by_id(type_id, region_id)
-    volume = 0.0
-    for item in data:
-        if date.today() - date.fromisoformat(item['date']) <= timedelta(days=days):
-            volume += item['volume']
-    current_app.logger.debug('volume: {}'.format(volume))
-    return volume
-
-
-def item_month_volume(type_id, region_id):
-    month_volume = MonthVolume.query.filter(
-        and_(MonthVolume.type_id == type_id, MonthVolume.region_id == region_id)).first()
-    if month_volume is None:
-        volume = get_item_history_volume(type_id, region_id)
         month_volume = MonthVolume(
-            type_id=type_id, region_id=region_id, volume=volume, update_time=date.today())
+            type_id=id, region_id=region_id, volume=accumulate_volume, update_time=date.today())
+        result[id] = accumulate_volume
+        current_app.logger.debug("item: {}".format(id))
+        current_app.logger.debug("volume: {}".format(accumulate_volume))
         db.session.add(month_volume)
-        db.session.commit()
-    else:
-        if date.today() - month_volume.update_time > timedelta(days=current_app.config['HISTORY_VOLUME_UPDATE_INTERVAL']):
-            volume = get_item_history_volume(type_id, region_id)
-            month_volume.volume = volume
-            month_volume.update_time = date.today()
-            db.session.commit()
-    return month_volume.volume
+
+    get_multiple_esi_data(outdate_to_get)
+    for id, data in outdate_to_get.items():
+        accumulate_volume = 0.0
+        if data is not None:
+            for daily_volume in data:
+                if date.today() - date.fromisoformat(daily_volume['date']) <= timedelta(days=days):
+                    accumulate_volume += daily_volume['volume']
+
+        outdate_item[id].volume = accumulate_volume
+        outdate_item[id].update_time = date.today()
+        current_app.logger.debug("item: {}".format(id))
+        current_app.logger.debug("volume: {}".format(accumulate_volume))
+        result[id] = accumulate_volume.volume
+
+    db.session.commit()
+    return result

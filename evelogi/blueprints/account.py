@@ -189,6 +189,8 @@ def edit_structure(id):
     form = StructureForm()
     form.character_id.choices = choices
     if form.validate_on_submit():
+        former_structure_id = structure.structure_id
+
         if structure.structure_id != form.structure_id.data:
             structures = [
                 structure for character in current_user.characters for structure in character.structures]
@@ -212,7 +214,7 @@ def edit_structure(id):
         try:
             structure.get_structure_data('name')
         except GetESIDataError as e:
-            form.structure_id.data = former_strucure_id
+            form.structure_id.data = former_structure_id
             flash('Edit structure failed, Check structure id or access control.')
             return render_template('main/structure.html', form=form)
         db.session.commit()
