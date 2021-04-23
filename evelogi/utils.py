@@ -101,7 +101,7 @@ def get_multiple_esi_data(to_get):
         k=0
         for future in futures.as_completed(to_do):
             res = future.result()
-            current_app.logger.debug(k)
+            current_app.logger.info(k)
             k=k+1
             if res.status_code == 200:
                 to_get[to_do[future]] = res.json()
@@ -120,11 +120,10 @@ def get_esi_data(path):
         if not pages:
             return data
         
-        current_app.logger.debug("x-pages: {}".format(pages))
+        current_app.logger.info("x-pages: {}".format(pages))
         results = asyncio.run(gather_esi_requests(path, pages))
         for result in results:
             data += result
-        current_app.logger.debug(len(data))
         return data
     else:
         current_app.logger.warning(
@@ -139,8 +138,5 @@ async def gather_esi_requests(path, pages):
 
 async def async_get_esi_data(path):
     async with aiohttp.ClientSession() as session:
-        i = 0
         async with session.get(path) as resp:
-            i=i+1
-            current_app.logger.debug(i)
             return await resp.json()

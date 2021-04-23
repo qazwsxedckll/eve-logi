@@ -47,8 +47,9 @@ def register_logger(app):
 
     # log to file
     if not app.debug:
-        file_handler = RotatingFileHandler('logs/{}.log'.format(time.strftime(
-            '%Y-%m-%d_%H:%M:%S', time.localtime())), maxBytes=10*1024*1024, backupCount=10)
+        # file_handler = RotatingFileHandler('logs/{}.log'.format(time.strftime(
+        #     '%Y-%m-%d_%H:%M:%S', time.localtime())), maxBytes=10*1024*1024, backupCount=10)
+        file_handler = RotatingFileHandler('logs/evelogi.log', maxBytes=10*1024*1024, backupCount=10)
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.INFO)
 

@@ -110,11 +110,11 @@ def trade():
             records.sort(key=lambda item: item.get(
                 'estimate_profit'), reverse=True)
 
-            return render_template('trade/trade.html', form=form, records=records[:200])
+            return render_template('trade/trade.html', form=form, records=records[:form.quantity_filter.data])
         return render_template('trade/trade.html', form=form)
 
 
-@cache.cached(timeout=36000, key_prefix='jita_sell_orders')
+@cache.cached(timeout=600, key_prefix='jita_sell_orders')
 def get_jita_sell_orders():
     """Retrive Jita sell orders. Takes about 5min. Should not be called simultaneously.
     """
@@ -142,8 +142,8 @@ def get_region_month_volume(type_ids, region_id, days=30):
             else:
                 result[type_id] = month_volume.volume
     
-    current_app.logger.debug("to get: {}".format(len(outdate_to_get)))
-    current_app.logger.debug("to get: {}".format(len(new_to_get)))
+    current_app.logger.info("to get: {}".format(len(outdate_to_get)))
+    current_app.logger.info("to get: {}".format(len(new_to_get)))
     get_multiple_esi_data(new_to_get)
     for id, data in new_to_get.items():
         accumulate_volume = 0.0
@@ -155,8 +155,6 @@ def get_region_month_volume(type_ids, region_id, days=30):
         month_volume = MonthVolume(
             type_id=id, region_id=region_id, volume=accumulate_volume, update_time=date.today())
         result[id] = accumulate_volume
-        current_app.logger.debug("item: {}".format(id))
-        current_app.logger.debug("volume: {}".format(accumulate_volume))
         db.session.add(month_volume)
 
     get_multiple_esi_data(outdate_to_get)
@@ -169,8 +167,6 @@ def get_region_month_volume(type_ids, region_id, days=30):
 
         outdate_item[id].volume = accumulate_volume
         outdate_item[id].update_time = date.today()
-        current_app.logger.debug("item: {}".format(id))
-        current_app.logger.debug("volume: {}".format(accumulate_volume))
         result[id] = accumulate_volume.volume
 
     db.session.commit()
