@@ -10,7 +10,7 @@ from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
 
 from flask import request, redirect, url_for, current_app, abort, session
 
-from evelogi.exceptions import GetESIDataError
+from evelogi.exceptions import GetESIDataError, GetESIDataNotFound
 
 def is_safe_url(target):
     ref_url = urlparse(request.host_url)
@@ -91,26 +91,6 @@ def validate_eve_jwt(jwt_token):
                                        "https://login.eveonline.com: {}".format(str(e)))
             abort(400)
 
-def get_multiple_esi_data(to_get):
-    # to_get {params: path}
-    with futures.ThreadPoolExecutor(max_workers=1024) as ex:
-        to_do = {}
-        for id, path in to_get.items():
-            future = ex.submit(requests.get,path)
-            to_do[future] = id
-        k=0
-        for future in futures.as_completed(to_do):
-            res = future.result()
-            current_app.logger.info(k)
-            k=k+1
-            if res.status_code == 200:
-                to_get[to_do[future]] = res.json()
-            elif res.status_code == 404:
-                to_get[to_do[future]] = None
-            else:
-                raise GetESIDataError(res.json())
-    return to_get
-
 def get_esi_data(path):
     res = requests.get(path)
     if res.status_code == 200:
@@ -121,8 +101,14 @@ def get_esi_data(path):
             return data
         
         current_app.logger.info("x-pages: {}".format(pages))
-        results = asyncio.run(gather_esi_requests(path, pages))
+        tasks = []
+        for i in range(2, int(pages) + 1):
+            tasks.append(async_get_esi_data(path + "&page={}".format(i)))
+        results = asyncio.run(gather_esi_requests(tasks))
+        i = 2
         for result in results:
+            current_app.logger.debug(i)
+            i = i + 1
             data += result
         return data
     else:
@@ -130,13 +116,19 @@ def get_esi_data(path):
             "\nSSO response JSON is: {}".format(res.json()))
         raise GetESIDataError(res.json())
 
-async def gather_esi_requests(path, pages):
-        tasks = []
-        for i in range(2, int(pages) + 1):
-            tasks.append(async_get_esi_data(path + "&page={}".format(i)))
-        return await asyncio.gather(*tasks)
+async def gather_esi_requests(tasks):
+    results = await asyncio.gather(*tasks)
+    return results
 
 async def async_get_esi_data(path):
     async with aiohttp.ClientSession() as session:
         async with session.get(path) as resp:
-            return await resp.json()
+            result = await resp.json()
+            if resp.status == 200:
+                return result
+            elif resp.status == 404:
+                raise GetESIDataNotFound(result)
+            else:
+                current_app.logger.warning(
+                    "\nSSO response JSON is: {}".format(result))
+                raise GetESIDataError(result)
