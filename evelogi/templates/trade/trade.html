@@ -35,6 +35,15 @@
                             {% endfor %}
                         </div>
                         <div class="col-span-6 sm:col-span-3">
+                            {{ form.margin_filter.label(class="block text-sm font-medium text-gray-700") }}
+                            {{ form.margin_filter(value=form.margin_filter.data, class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white
+                            rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500
+                            sm:text-sm") }}
+                            {% for error in form.margin_filter.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        <div class="col-span-6 sm:col-span-3">
                             {{ form.quantity_filter.label(class="block text-sm font-medium text-gray-700") }}
                             {{ form.quantity_filter(value=form.quantity_filter.data, class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white
                             rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500

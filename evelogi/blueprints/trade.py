@@ -98,6 +98,9 @@ def trade():
                 margin = profit_per_item / \
                     (jita_sell_price + jita_to_cost + sales_cost)
 
+                if margin < form.margin_filter.data:
+                    continue
+
                 records.append({'type_id': type_id,
                                 'type_name': type_name,
                                 'jita_sell_price': jita_sell_price,
