@@ -179,6 +179,9 @@ async def get_item_month_volume(type_id, region_id, session):
         data = await async_get_esi_data(path, session)
     except GetESIDataNotFound as e:
         accumulate_volume = 0
+    except Exception as e:
+        accumulate_volume = 0
+        current_app.logger.warning(e)
     else:
         accumulate_volume = 0
         for daily_volume in data:
