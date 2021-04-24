@@ -12,7 +12,7 @@ from flask import Flask, session, abort
 from flask.helpers import url_for
 from flask.logging import default_handler
 
-from evelogi.extensions import db, migrate, login_manager, cache, Base, csrf
+from evelogi.extensions import db, migrate, login_manager, cache, Base, csrf, toolbar
 from evelogi.settings import config
 from evelogi.blueprints.account import account_bp
 from evelogi.blueprints.main import main_bp
@@ -66,8 +66,7 @@ def register_extensions(app):
     login_manager.init_app(app)
     cache.init_app(app)
     csrf.init_app(app)
-    
-
+    # toolbar.init_app(app)
 
 def register_blueprints(app):
     app.register_blueprint(main_bp)

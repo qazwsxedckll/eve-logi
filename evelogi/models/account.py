@@ -53,7 +53,7 @@ class Character_(db.Model):
         data = get_esi_data(path)
         return data
     
-    @cache.memoize(1000)
+    @cache.memoize(600)
     def get_access_token(self):
         form_values = {
             "grant_type": "refresh_token",

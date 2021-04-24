@@ -1,10 +1,8 @@
-import flask
-import flask_login
+from asyncio import tasks
 import requests
 import secrets
 import asyncio
 import aiohttp
-from concurrent import futures
 from urllib.parse import urlparse, urljoin, urlencode
 
 from jose import jwt
@@ -104,10 +102,10 @@ def get_esi_data(path):
             return data
         
         current_app.logger.info("user: {}, x-pages: {}".format(current_user.id ,pages))
-        tasks = []
+        paths = []
         for i in range(2, int(pages) + 1):
-            tasks.append(async_get_esi_data(path + "&page={}".format(i)))
-        results = asyncio.run(gather_esi_requests(tasks))
+            paths.append(path + "&page={}".format(i))
+        results = asyncio.run(gather_esi_requests(paths))
         for result in results:
             data += result
         current_app.logger.info("user: {}, finished".format(current_user.id))
@@ -117,19 +115,22 @@ def get_esi_data(path):
             "\nSSO response JSON is: {}".format(res.json()))
         raise GetESIDataError(res.json())
 
-async def gather_esi_requests(tasks):
-    results = await asyncio.gather(*tasks)
-    return results
-
-async def async_get_esi_data(path):
+async def gather_esi_requests(paths):
     async with aiohttp.ClientSession() as session:
-        async with session.get(path) as resp:
-            result = await resp.json()
-            if resp.status == 200:
-                return result
-            elif resp.status == 404:
-                raise GetESIDataNotFound(result)
-            else:
-                current_app.logger.warning(
-                    "\nSSO response JSON is: {}".format(result))
-                raise GetESIDataError(result)
+        tasks = []
+        for path in paths:
+            tasks.append(async_get_esi_data(path, session))
+        results = await asyncio.gather(*tasks)
+        return results
+
+async def async_get_esi_data(path, session):
+    async with session.get(path) as resp:
+        result = await resp.json(content_type=None)
+        if resp.status == 200:
+            return result
+        elif resp.status == 404:
+            raise GetESIDataNotFound(result)
+        else:
+            current_app.logger.warning(
+                "\nSSO response JSON is: {}".format(result))
+            raise GetESIDataError(result)

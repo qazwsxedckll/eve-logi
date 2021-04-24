@@ -1,3 +1,4 @@
+from evelogi.blueprints.main import index
 from sqlalchemy.sql.expression import update
 from evelogi.extensions import db
 

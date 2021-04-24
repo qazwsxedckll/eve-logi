@@ -1,9 +1,8 @@
-from asyncio import tasks
 import asyncio
 from datetime import date, timedelta
-from concurrent import futures
 import math
 
+import aiohttp
 from flask import Blueprint, render_template, redirect, flash
 
 from flask_login import login_required, current_user
@@ -49,8 +48,6 @@ def trade():
             SolarSystems = Base.classes.mapSolarSystems
             InvTypes = Base.classes.invTypes
             InvVolumes = Base.classes.invVolumes
-            inv_types = db.session.query(InvTypes).all()
-            inv_volumes = db.session.query(InvVolumes).all()
 
             structure = Structure.query.get(form.structure.data)
             structure_orders = structure.get_structure_orders()
@@ -58,14 +55,43 @@ def trade():
             region_id = db.session.query(
                 SolarSystems).get(structure.get_structure_data('solar_system_id')).regionID
 
-            records = []
-
             current_app.logger.info(
                 "user: {}, before get month volume".format(current_user.id))
-            volumes = asyncio.run(get_region_month_volume(type_ids, region_id))
+            new_to_get = []
+            outdate_to_get = []
+            volumes = {}
+            to_update = {}
+            for type_id in type_ids:
+                month_volume = MonthVolume.query.filter(and_(MonthVolume.type_id == type_id, MonthVolume.region_id == region_id)).first()
+                if month_volume is None:
+                    new_to_get.append(type_id)
+                else:
+                    if date.today() - month_volume.update_time > timedelta(days=current_app.config['HISTORY_VOLUME_UPDATE_INTERVAL']):
+                        outdate_to_get.append(type_id)
+                        to_update[type_id] = month_volume
+                    else:
+                        volumes[type_id] = month_volume.volume
+
+            current_app.logger.info('user: {}, new {}, outdate {}'.format(current_user.id, len(new_to_get), len(outdate_to_get)))
+
+            new_results = asyncio.run(get_region_month_volume(new_to_get, region_id))
+            for type_id, volume in new_results.items():
+                month_volume = MonthVolume(
+                    type_id=type_id, region_id=region_id, volume=volume, update_time=date.today())
+                db.session.add(month_volume)
+            volumes.update(new_results)
+
+            outdate_results = asyncio.run(get_region_month_volume(outdate_to_get, region_id))
+            for type_id, volume in outdate_results.items():
+                to_update[type_id].volume = volume
+                to_update[type_id].update_time = date.today()
+            volumes.update(outdate_results)
+            db.session.commit()
+
             current_app.logger.info(
                 "user: {}, after get month volume".format(current_user.id))
 
+            records = []
             for type_id in type_ids:
                 if volumes[type_id] == 0:
                     continue
@@ -84,15 +110,13 @@ def trade():
                     local_price = jita_sell_price * 1.3
                     stockout = True
 
-                type_name = next(filter(lambda x: x.typeID ==
-                                        type_id, inv_types)).typeName
-                inv_volume = next(
-                    filter(lambda x: x.typeID == type_id, inv_volumes), None)
-                if inv_volume is None:
-                    packaged_volume = next(
-                        filter(lambda x: x.typeID == type_id, inv_types)).volume
+                inv_type = db.session.query(InvTypes).get(type_id)
+                type_name = inv_type.typeName
+                packaged_volume = db.session.query(InvVolumes).get(type_id)
+                if packaged_volume is None:
+                    packaged_volume = inv_type.volume
                 else:
-                    packaged_volume = inv_volume.volume
+                    packaged_volume = packaged_volume.volume
 
                 jita_to_cost = float(packaged_volume * structure.jita_to_fee)
 
@@ -137,33 +161,22 @@ def get_jita_sell_orders():
 async def get_region_month_volume(type_ids, region_id):
     volumes = {}
     tasks = []
-    month_volumes = MonthVolume.query.all()
-    for type_id in type_ids:
-        month_volume = next(filter(lambda item: (
-            item.type_id == type_id and item.region_id == region_id), month_volumes), None)
-        if month_volume is None:
-            tasks.append(get_item_month_volume_to_db(type_id, region_id, None))
-        else:
-            if date.today() - month_volume.update_time > timedelta(days=current_app.config['HISTORY_VOLUME_UPDATE_INTERVAL']):
-                tasks.append(get_item_month_volume_to_db(
-                    type_id, region_id, month_volume))
-            else:
-                volumes.update({type_id: month_volume.volume})
+    async with aiohttp.ClientSession() as session:
+        for type_id in type_ids:
+            tasks.append(get_item_month_volume(type_id, region_id, session))
 
-    current_app.logger.info('user: {}, {} month_volumes need to be fetch.'.format(current_user.id, len(tasks)))
-    results = await asyncio.gather(*tasks)
-    db.session.commit()
-    for result in results:
-        volumes.update(result)
+        results =  await asyncio.gather(*tasks)
+        for result in results:
+            volumes.update(result)
     return volumes
 
 
-async def get_item_month_volume_to_db(type_id, region_id, month_volume):
+async def get_item_month_volume(type_id, region_id, session):
     path = "https://esi.evetech.net/latest/markets/" + \
         str(region_id) + \
         "/history/?datasource=tranquility&type_id=" + str(type_id)
     try:
-        data = await async_get_esi_data(path)
+        data = await async_get_esi_data(path, session)
     except GetESIDataNotFound as e:
         accumulate_volume = 0
     else:
@@ -171,13 +184,5 @@ async def get_item_month_volume_to_db(type_id, region_id, month_volume):
         for daily_volume in data:
             if date.today() - date.fromisoformat(daily_volume['date']) <= timedelta(days=30):
                 accumulate_volume += daily_volume['volume']
-
-    if month_volume is None:
-        month_volume = MonthVolume(
-            type_id=type_id, region_id=region_id, volume=accumulate_volume, update_time=date.today())
-        db.session.add(month_volume)
-    else:
-        month_volume.volume = accumulate_volume
-        month_volume.update_time = date.today()
 
     return {type_id: accumulate_volume}

@@ -4,6 +4,7 @@ from flask_login import LoginManager
 from flask_caching import Cache
 from sqlalchemy.ext.automap import automap_base
 from flask_wtf.csrf import CSRFProtect
+from flask_debugtoolbar import DebugToolbarExtension
 
 db = SQLAlchemy()
 Base = automap_base()
@@ -11,6 +12,7 @@ migrate = Migrate()
 login_manager = LoginManager()
 cache = Cache()
 csrf = CSRFProtect()
+toolbar = DebugToolbarExtension()
 
 from evelogi.models.account import User
 
