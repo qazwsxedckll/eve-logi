@@ -1,3 +1,5 @@
+import flask
+import flask_login
 import requests
 import secrets
 import asyncio
@@ -9,6 +11,7 @@ from jose import jwt
 from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
 
 from flask import request, redirect, url_for, current_app, abort, session
+from flask_login import current_user
 
 from evelogi.exceptions import GetESIDataError, GetESIDataNotFound
 
@@ -100,16 +103,14 @@ def get_esi_data(path):
         if not pages:
             return data
         
-        current_app.logger.info("x-pages: {}".format(pages))
+        current_app.logger.info("user: {}, x-pages: {}".format(current_user.id ,pages))
         tasks = []
         for i in range(2, int(pages) + 1):
             tasks.append(async_get_esi_data(path + "&page={}".format(i)))
         results = asyncio.run(gather_esi_requests(tasks))
-        i = 2
         for result in results:
-            current_app.logger.debug(i)
-            i = i + 1
             data += result
+        current_app.logger.info("user: {}, finished".format(current_user.id))
         return data
     else:
         current_app.logger.warning(
