@@ -130,10 +130,11 @@ async def async_get_esi_data(path, session):
                 result = await resp.json(content_type=None)
                 if resp.status == 200:
                     return result
+                elif resp.status == 404:
+                    raise GetESIDataNotFound
                 else:
                     current_app.logger.warning(
-                        "SSO response JSON is: {}, attempt: {}".format(result, i+1))
+                        "status: {} response: {}, attempt: {}".format(resp.status, result, i+1))
             except Exception as e:
-                current_app.logger.warning('status code: {}, attempt: {}'.format(resp.status, i+1))
-                current_app.logger.warning(e)
+                current_app.logger.warning('status code: {}, message: {}, attempt: {}'.format(resp.status, e, i+1))
         raise GetESIDataError

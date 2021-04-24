@@ -181,7 +181,7 @@ async def get_region_month_volume(type_ids, region_id):
             volumes[result[0]] = result[1]
             if result[1] == -1:
                 fails += 1
-        current_app.info(
+        current_app.logger.info(
             'user: {}, get_region_month_volume {} fails.'.format(fails))
         flash("{} fails when fetching data.".format(fails))
     return volumes
@@ -193,6 +193,8 @@ async def get_item_month_volume(type_id, region_id, session):
         "/history/?datasource=tranquility&type_id=" + str(type_id)
     try:
         data = await async_get_esi_data(path, session)
+    except GetESIDataNotFound:
+        accumulate_volume = 0
     except GetESIDataError as e:
         accumulate_volume = -1
     else:
