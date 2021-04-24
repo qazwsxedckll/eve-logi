@@ -182,7 +182,7 @@ async def get_region_month_volume(type_ids, region_id):
             if result[1] == -1:
                 fails += 1
         current_app.logger.info(
-            'user: {}, get_region_month_volume {} fails.'.format(fails))
+            'user: {}, get_region_month_volume {} fails.'.format(current_user.id, fails))
         flash("{} fails when fetching data.".format(fails))
     return volumes
 

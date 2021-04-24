@@ -128,6 +128,10 @@ async def async_get_esi_data(path, session):
         for i in range(3):
             try:
                 result = await resp.json(content_type=None)
+            except Exception as e:
+                current_app.logger.warning('status code: {}, message: {}, attempt: {}'.format(resp.status, e, i+1))
+                raise GetESIDataError
+            else:
                 if resp.status == 200:
                     return result
                 elif resp.status == 404:
@@ -135,6 +139,4 @@ async def async_get_esi_data(path, session):
                 else:
                     current_app.logger.warning(
                         "status: {} response: {}, attempt: {}".format(resp.status, result, i+1))
-            except Exception as e:
-                current_app.logger.warning('status code: {}, message: {}, attempt: {}'.format(resp.status, e, i+1))
-        raise GetESIDataError
+                    raise GetESIDataError
