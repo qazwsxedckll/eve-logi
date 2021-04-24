@@ -130,7 +130,6 @@ async def async_get_esi_data(path, session):
                 result = await resp.json(content_type=None)
             except Exception as e:
                 current_app.logger.warning('status code: {}, message: {}, attempt: {}'.format(resp.status, e, i+1))
-                raise GetESIDataError
             else:
                 if resp.status == 200:
                     return result
@@ -139,4 +138,4 @@ async def async_get_esi_data(path, session):
                 else:
                     current_app.logger.warning(
                         "status: {} response: {}, attempt: {}".format(resp.status, result, i+1))
-                    raise GetESIDataError
+        raise GetESIDataError
