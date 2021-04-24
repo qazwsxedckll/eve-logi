@@ -15,7 +15,7 @@ from evelogi.extensions import cache, db, Base
 from evelogi.forms.trade import TradeGoodsForm
 from evelogi.models.account import Structure
 from evelogi.models.trade import MonthVolume
-from evelogi.exceptions import GetESIDataNotFound
+from evelogi.exceptions import GetESIDataError, GetESIDataNotFound
 
 trade_bp = Blueprint('trade', __name__)
 
@@ -64,26 +64,32 @@ def trade():
             volumes = {}
             to_update = {}
             for type_id in type_ids:
-                month_volume = MonthVolume.query.filter(and_(MonthVolume.type_id == type_id, MonthVolume.region_id == region_id)).first()
+                month_volume = MonthVolume.query.filter(
+                    and_(MonthVolume.type_id == type_id, MonthVolume.region_id == region_id)).first()
                 if month_volume is None:
                     new_to_get.append(type_id)
                 else:
-                    if date.today() - month_volume.update_time > timedelta(days=current_app.config['HISTORY_VOLUME_UPDATE_INTERVAL']):
+                    if (date.today() - month_volume.update_time > timedelta(days=current_app.config['HISTORY_VOLUME_UPDATE_INTERVAL'])) \
+                            or (month_volume.volume == -1):
+                            # -1 means fetching failed at last time
                         outdate_to_get.append(type_id)
                         to_update[type_id] = month_volume
                     else:
                         volumes[type_id] = month_volume.volume
 
-            current_app.logger.info('user: {}, new {}, outdate {}'.format(current_user.id, len(new_to_get), len(outdate_to_get)))
+            current_app.logger.info('user: {}, new {}, outdate {}'.format(
+                current_user.id, len(new_to_get), len(outdate_to_get)))
 
-            new_results = asyncio.run(get_region_month_volume(new_to_get, region_id))
+            new_results = asyncio.run(
+                get_region_month_volume(new_to_get, region_id))
             for type_id, volume in new_results.items():
                 month_volume = MonthVolume(
                     type_id=type_id, region_id=region_id, volume=volume, update_time=date.today())
                 db.session.add(month_volume)
             volumes.update(new_results)
 
-            outdate_results = asyncio.run(get_region_month_volume(outdate_to_get, region_id))
+            outdate_results = asyncio.run(
+                get_region_month_volume(outdate_to_get, region_id))
             for type_id, volume in outdate_results.items():
                 to_update[type_id].volume = volume
                 to_update[type_id].update_time = date.today()
@@ -147,7 +153,8 @@ def trade():
                                 })
             records.sort(key=lambda item: item.get(
                 'estimate_profit'), reverse=True)
-            current_app.logger.info('user: {}, records returned.'.format(current_user.id))
+            current_app.logger.info(
+                'user: {}, records returned.'.format(current_user.id))
 
             return render_template('trade/trade.html', form=form, records=records[:form.quantity_filter.data])
         return render_template('trade/trade.html', form=form)
@@ -168,9 +175,15 @@ async def get_region_month_volume(type_ids, region_id):
         for type_id in type_ids:
             tasks.append(get_item_month_volume(type_id, region_id, session))
 
-        results =  await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks)
+        fails = 0
         for result in results:
-            volumes.update(result)
+            volumes[result[0]] = result[1]
+            if result[1] == -1:
+                fails += 1
+        current_app.info(
+            'user: {}, get_region_month_volume {} fails.'.format(fails))
+        flash("{} fails when fetching data.".format(fails))
     return volumes
 
 
@@ -178,10 +191,14 @@ async def get_item_month_volume(type_id, region_id, session):
     path = "https://esi.evetech.net/latest/markets/" + \
         str(region_id) + \
         "/history/?datasource=tranquility&type_id=" + str(type_id)
-    data = await async_get_esi_data(path, session)
-    accumulate_volume = 0
-    for daily_volume in data:
-        if date.today() - date.fromisoformat(daily_volume['date']) <= timedelta(days=30):
-            accumulate_volume += daily_volume['volume']
+    try:
+        data = await async_get_esi_data(path, session)
+    except GetESIDataError as e:
+        accumulate_volume = -1
+    else:
+        accumulate_volume = 0
+        for daily_volume in data:
+            if date.today() - date.fromisoformat(daily_volume['date']) <= timedelta(days=30):
+                accumulate_volume += daily_volume['volume']
 
-    return {type_id: accumulate_volume}
+    return (type_id, accumulate_volume)

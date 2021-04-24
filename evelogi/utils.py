@@ -135,4 +135,5 @@ async def async_get_esi_data(path, session):
                         "SSO response JSON is: {}, attempt: {}".format(result, i+1))
             except Exception as e:
                 current_app.logger.warning('status code: {}, attempt: {}'.format(resp.status, i+1))
+                current_app.logger.warning(e)
         raise GetESIDataError
