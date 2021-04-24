@@ -43,6 +43,9 @@ class Character_(db.Model):
                                  back_populates='character',
                                  cascade='all, delete-orphan')
 
+    def get_orders_count(self):
+        return len(self.get_orders())
+
     def get_orders(self):
         """Retrive orders of a character.
         """
@@ -52,7 +55,16 @@ class Character_(db.Model):
             "/orders/?datasource=tranquility&token=" + access_token
         data = get_esi_data(path)
         return data
-    
+
+    def get_wallet(self):
+        access_token = self.get_access_token()
+        path = 'https://esi.evetech.net/latest/characters/' + \
+            str(self.character_id) + \
+            '/wallet/?datasource=tranquility&token=' + access_token
+        data = get_esi_data(path)
+        current_app.logger.debug(data)
+        return data
+
     @cache.memoize(600)
     def get_access_token(self):
         form_values = {

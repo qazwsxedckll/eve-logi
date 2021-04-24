@@ -125,12 +125,14 @@ async def gather_esi_requests(paths):
 
 async def async_get_esi_data(path, session):
     async with session.get(path) as resp:
-        result = await resp.json(content_type=None)
-        if resp.status == 200:
-            return result
-        elif resp.status == 404:
-            raise GetESIDataNotFound(result)
-        else:
-            current_app.logger.warning(
-                "\nSSO response JSON is: {}".format(result))
-            raise GetESIDataError(result)
+        for i in range(3):
+            try:
+                result = await resp.json(content_type=None)
+                if resp.status == 200:
+                    return result
+                else:
+                    current_app.logger.warning(
+                        "SSO response JSON is: {}, attempt: {}".format(result, i+1))
+            except Exception as e:
+                current_app.logger.warning('status code: {}, attempt: {}'.format(resp.status, i+1))
+        raise GetESIDataError

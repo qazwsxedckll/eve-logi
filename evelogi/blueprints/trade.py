@@ -41,8 +41,10 @@ def trade():
             my_sell_orders = list(filter(lambda item: (item.get(
                 'is_buy_order') is None or item.get('is_buy_order') == False), my_orders))
             my_sell_order_ids = {item['type_id'] for item in my_sell_orders}
-            for id in type_ids:
-                if id in my_sell_order_ids:
+            current_app.logger.info(
+                "user: {}, {} sell orders".format(current_user.id, len(my_sell_order_ids)))
+            for id in my_sell_order_ids:
+                if id in type_ids:
                     type_ids.remove(id)
 
             SolarSystems = Base.classes.mapSolarSystems
@@ -145,6 +147,7 @@ def trade():
                                 })
             records.sort(key=lambda item: item.get(
                 'estimate_profit'), reverse=True)
+            current_app.logger.info('user: {}, records returned.'.format(current_user.id))
 
             return render_template('trade/trade.html', form=form, records=records[:form.quantity_filter.data])
         return render_template('trade/trade.html', form=form)
@@ -175,17 +178,10 @@ async def get_item_month_volume(type_id, region_id, session):
     path = "https://esi.evetech.net/latest/markets/" + \
         str(region_id) + \
         "/history/?datasource=tranquility&type_id=" + str(type_id)
-    try:
-        data = await async_get_esi_data(path, session)
-    except GetESIDataNotFound as e:
-        accumulate_volume = 0
-    except Exception as e:
-        accumulate_volume = 0
-        current_app.logger.warning(e)
-    else:
-        accumulate_volume = 0
-        for daily_volume in data:
-            if date.today() - date.fromisoformat(daily_volume['date']) <= timedelta(days=30):
-                accumulate_volume += daily_volume['volume']
+    data = await async_get_esi_data(path, session)
+    accumulate_volume = 0
+    for daily_volume in data:
+        if date.today() - date.fromisoformat(daily_volume['date']) <= timedelta(days=30):
+            accumulate_volume += daily_volume['volume']
 
     return {type_id: accumulate_volume}

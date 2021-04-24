@@ -120,8 +120,11 @@
                         <tr>
                             {% endif %}
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">
+                                <div class="flex flex-row justify-center">
+                                <img src="https://images.evetech.net/types/{{ record['type_id'] }}/icon?size=32" alt="">
+                                <div class="text-sm text-gray-900 px-2">
                                     {{ record['type_id'] }}
+                                </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
