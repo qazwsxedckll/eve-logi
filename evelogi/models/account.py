@@ -1,5 +1,6 @@
 import os
 import base64
+from flask_migrate import current
 import requests
 
 from flask import current_app, abort
@@ -134,7 +135,10 @@ class Structure(db.Model):
 
     def get_structure_data(self, field):
         data = self._get_structure_data()
-        return data[field]
+        try:
+            return data[field]
+        except KeyError as e:
+            current_app.logger.error(e)
 
     def get_structure_orders(self):
         """Retrive orders in a structure.

@@ -5,13 +5,19 @@ import asyncio
 import aiohttp
 from urllib.parse import urlparse, urljoin, urlencode
 
+import redis
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
 
-from flask import request, redirect, url_for, current_app, abort, session
+from flask import request, redirect, url_for, current_app, abort, session, g
 from flask_login import current_user
 
 from evelogi.exceptions import GetESIDataError, GetESIDataNotFound
+
+def get_redis():
+    if 'redis' not in g:
+        g.redis = redis.Redis(host='localhost', port=6379, db=0)
+    return g.redis
 
 def is_safe_url(target):
     ref_url = urlparse(request.host_url)
