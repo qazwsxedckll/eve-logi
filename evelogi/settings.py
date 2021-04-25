@@ -41,7 +41,7 @@ class ProductionConfig(BaseConfig):
     CACHE_DEFAULT_TIMEOUT=300
 
     #Trade
-    HISTORY_VOLUME_UPDATE_INTERVAL=30
+    HISTORY_VOLUME_UPDATE_INTERVAL=7
 class TestingConfig(BaseConfig):
     TESTING = True
     WTF_CSRF_ENABLED = True

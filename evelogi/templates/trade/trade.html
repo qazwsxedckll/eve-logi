@@ -72,7 +72,7 @@
         </div>
         <div class="h-96 overflow-y-auto">
             {% for record in records %}
-            <span>{{ record['type_name'] }}&nbsp;{{ record['daily_volume'] }}</span><br>
+            <span>{{ record['type_name'] }}&nbsp;{{ (record['daily_volume'] * form.multiple.data)|round(method='ceil')|int }}</span><br>
             {% if loop.index % 100 == 0 %}
             <span>--------------------------------{{ loop.index }}--------------------------------</span><br>
             {% endif %}
@@ -82,13 +82,13 @@
     </div>
     <div class="overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-            <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+            <div class="shadow border-b border-gray-200 sm:rounded-lg">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <th scope="col"
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap">
-                                Type ID
+                                Type
                             </th>
                             <th scope="col"
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap">
@@ -101,6 +101,10 @@
                             <th scope="col"
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap">
                                 Local Sell
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap">
+                                Average Daily Volume
                             </th>
                             <th scope="col"
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider whitespace-nowrap">
@@ -120,12 +124,7 @@
                         <tr>
                             {% endif %}
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex flex-row">
                                 <img src="https://images.evetech.net/types/{{ record['type_id'] }}/icon?size=32" alt="">
-                                <div class="text-sm text-gray-900 px-2">
-                                    {{ record['type_id'] }}
-                                </div>
-                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900">
@@ -140,6 +139,15 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900">
                                     {{ '{:,}'.format(record['local_price']|int) }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {% if record['daily_volume'] >= 1 %}
+                                    {{ '{:,}'.format(record['daily_volume']|int) }}
+                                    {% else %}
+                                    {{ '{:,}'.format(record['daily_volume']) }}
+                                    {% endif %}
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
