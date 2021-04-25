@@ -16,7 +16,7 @@ from evelogi.exceptions import GetESIDataError, GetESIDataNotFound
 
 def get_redis():
     if 'redis' not in g:
-        g.redis = redis.Redis(host='localhost', port=6379, db=0)
+        g.redis = redis.StrictRedis('localhost', 6379, charset="utf-8", decode_responses=True)
     return g.redis
 
 def is_safe_url(target):

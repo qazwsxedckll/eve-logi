@@ -77,25 +77,36 @@ def trade():
             current_app.logger.info(
                 "user: {}, after get month volume".format(current_user.id))
 
+            jita_lowest_price = {}
+            for item in jita_sell_data:
+                value = jita_lowest_price.get(item['type_id'], float('inf'))
+                if item['price'] < value:
+                    jita_lowest_price[item["type_id"]] = item['price']
+            
+            local_lowest_price = {}
+            for item in structure_orders:
+                if item['is_buy_order'] == True:
+                    continue
+                value = local_lowest_price.get(item['type_id'], float('inf'))
+                if item['price'] < value:
+                    local_lowest_price[item["type_id"]] = item['price']
+            for type_id, price in local_lowest_price.items():
+                if price == float('inf'):
+                    local_lowest_price[type_id] = jita_lowest_price[type_id] * 1.3
+                    stock_out[type_id] = True
+
             records = []
             for type_id in type_ids:
                 if volumes.get(type_id, 0) == 0:
                     continue
                 stockout = False
 
-                jita_sell_price = float('inf')
-                for item in jita_sell_data:
-                    if item['type_id'] == type_id:
-                        jita_sell_price = item['price'] if item['price'] < jita_sell_price else jita_sell_price
-
-                local_price = float("inf")
-                for item in structure_orders:
-                    if item['type_id'] == type_id and item['is_buy_order'] == False:
-                        local_price = item['price'] if item['price'] < local_price else local_price
-                if local_price == float("inf"):
-                    local_price = jita_sell_price * 1.3
+                jita_price = jita_lowest_price[type_id]
+                local_price = local_lowest_price.get(type_id)
+                if local_price is None:
+                    local_price = jita_price * 1.3
                     stockout = True
-
+                
                 type_name = item_type_name(type_id)
                 packaged_volume = item_packaged_volume(type_id)
 
@@ -104,12 +115,12 @@ def trade():
                 sales_cost = local_price * \
                     (structure.sales_tax * 0.01 + structure.brokers_fee * 0.01)
 
-                profit_per_item = local_price - jita_sell_price - jita_to_cost - sales_cost
+                profit_per_item = local_price - jita_price - jita_to_cost - sales_cost
                 if profit_per_item <= 0:
                     continue
 
                 margin = profit_per_item / \
-                    (jita_sell_price + jita_to_cost + sales_cost)
+                    (jita_price + jita_to_cost + sales_cost)
                 if margin < form.margin_filter.data:
                     continue
 
@@ -119,7 +130,7 @@ def trade():
 
                 records.append({'type_id': type_id,
                                 'type_name': type_name,
-                                'jita_sell_price': jita_sell_price,
+                                'jita_sell_price': jita_price,
                                 'daily_volume': round(volumes[type_id] / 30, 2),
                                 'local_price': local_price,
                                 'estimate_profit': estimate_profit,
