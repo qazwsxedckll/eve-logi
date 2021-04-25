@@ -78,7 +78,7 @@ def trade():
 
             records = []
             for type_id in type_ids:
-                if volumes[type_id] == 0:
+                if volumes.get(type_id, 0) == 0:
                     continue
                 stockout = False
 
