@@ -90,10 +90,6 @@ def trade():
                 value = local_lowest_price.get(item['type_id'], float('inf'))
                 if item['price'] < value:
                     local_lowest_price[item["type_id"]] = item['price']
-            for type_id, price in local_lowest_price.items():
-                if price == float('inf'):
-                    local_lowest_price[type_id] = jita_lowest_price[type_id] * 1.3
-                    stock_out[type_id] = True
 
             records = []
             for type_id in type_ids:

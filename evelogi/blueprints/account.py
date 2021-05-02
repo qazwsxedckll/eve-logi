@@ -63,7 +63,9 @@ def login():
         if character:
             if current_user.is_authenticated:
                 # add a existing character
-                redirect(url_for('main.account'))
+                if character not in current_user.characters:
+                    flash('Character has been bound.')
+                return redirect(url_for('main.account'))
             else:
                 # login a existing user
                 if character.user:
