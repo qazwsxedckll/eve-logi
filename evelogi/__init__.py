@@ -9,7 +9,6 @@ from urllib.parse import urlencode
 
 import click
 from flask import Flask, session, abort
-from flask.helpers import url_for
 from flask.logging import default_handler
 
 from evelogi.extensions import db, migrate, login_manager, cache, Base, csrf, toolbar

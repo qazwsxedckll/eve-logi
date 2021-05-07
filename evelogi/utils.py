@@ -9,7 +9,7 @@ import redis
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
 
-from flask import request, redirect, url_for, current_app, abort, session, g
+from flask import request, redirect, url_for, current_app, session, g
 from flask_login import current_user
 
 from evelogi.exceptions import GetESIDataError, GetESIDataNotFound
@@ -66,7 +66,7 @@ def validate_eve_jwt(jwt_token):
         current_app.logger.warning("Something went wrong when retrieving the JWK set. The returned "
                                    "payload did not have the expected key {}. \nPayload returned "
                                    "from the SSO looks like: {}".format(e, data))
-        abort(400)
+        raise
 
     jwk_set = next((item for item in jwk_sets if item["alg"] == "RS256"))
 
@@ -77,14 +77,14 @@ def validate_eve_jwt(jwt_token):
             algorithms=jwk_set["alg"],
             issuer="login.eveonline.com"
         )
-    except ExpiredSignatureError:
+    except ExpiredSignatureError as e:
         current_app.logger.warning(
             "The JWT token has expired: {}".format(str(e)))
-        abort(400)
+        raise
     except JWTError as e:
         current_app.logger.warning(
             "The JWT signature was invalid: {}".format(str(e)))
-        abort(400)
+        raise
     except JWTClaimsError as e:
         try:
             return jwt.decode(
@@ -96,7 +96,7 @@ def validate_eve_jwt(jwt_token):
         except JWTClaimsError as e:
             current_app.logger.warning("The issuer claim was not from login.eveonline.com or "
                                        "https://login.eveonline.com: {}".format(str(e)))
-            abort(400)
+            raise
 
 def get_esi_data(path):
     res = requests.get(path)

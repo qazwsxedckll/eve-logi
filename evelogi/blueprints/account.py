@@ -5,7 +5,7 @@ import time
 
 from flask import Blueprint, flash, session
 from flask.templating import render_template
-from flask import request, current_app, abort, redirect, url_for
+from flask import request, current_app, redirect, url_for
 
 from flask_login import login_user, current_user, logout_user, login_required
 
@@ -21,10 +21,11 @@ account_bp = Blueprint('account', __name__)
 @account_bp.route('/login/')
 def login():
     state = request.args.get('state')
-    if state is None or state != session['state']:
+    if state is None or state != session.get('state'):
         current_app.logger.warning('state from eve:{} does not match state sent:{}'.format(
-            state, current_app.config['STATE']))
-        abort(400)
+            state, current_app.config.get('STATE')))
+        flash('state error')
+        return url_for('main.index')
     session.pop('state')
 
     code = request.args.get('code')
@@ -54,7 +55,11 @@ def login():
     if res.status_code == 200:
         data = res.json()
         access_token = data['access_token']
-        jwt = validate_eve_jwt(access_token)
+        try:
+            jwt = validate_eve_jwt(access_token)
+        except Exception as e:
+            flash('validate jwt error')
+            return url_for('main.index')
 
         character_id = jwt["sub"].split(":")[2]
         character_name = jwt["name"]
@@ -73,7 +78,8 @@ def login():
                         db.session.delete(character)
                         db.session.commit()
                         current_app.logger.warning('owner has changed.')
-                        abort(400)
+                        flash('owner has changed.')
+                        return url_for('main.index')
                     else:
                         login_user(character.user)
                         current_app.logger.info(
@@ -83,7 +89,8 @@ def login():
                     db.session.commit()
                     current_app.logger.error(
                         'orphan character, something need to be fixed')
-                    abort(400)
+                    flash('Error')
+                    return url_for('main.index')
         else:
             character = Character_(
                 name=character_name, character_id=character_id, owner_hash=owner_hash)
@@ -112,8 +119,8 @@ def login():
         return redirect_back()
     else:
         current_app.logger.warning(
-            "\nSSO response JSON is: {}".format(res.json()))
-        abort(res.status_code)
+            "\nSSO response JSON is: {}, code: {}".format(res.text, res.status_code))
+        return url_for('main.index')
 
 
 @account_bp.route('/logout/')

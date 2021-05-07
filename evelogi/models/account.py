@@ -1,6 +1,5 @@
 import os
 import base64
-from flask_migrate import current
 import requests
 
 from flask import current_app, abort
@@ -99,8 +98,9 @@ class Character_(db.Model):
             return access_token
         else:
             current_app.logger.warning(
-                "\nSSO response JSON is: {}".format(res.json()))
-            abort(res.status_code)
+                "\nSSO response JSON is: {}".format(res.text))
+            abort(400)
+            
 
 
 class RefreshToken(db.Model):
