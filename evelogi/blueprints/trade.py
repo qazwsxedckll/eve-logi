@@ -12,7 +12,7 @@ from evelogi.utils import async_get_esi_data, eve_oauth_url, get_esi_data, get_r
 from evelogi.extensions import cache, db, Base
 from evelogi.forms.trade import TradeGoodsForm
 from evelogi.models.account import Structure
-from evelogi.exceptions import GetESIDataError, GetESIDataNotFound
+from evelogi.exceptions import GetESIDataError, GetESIDataNotFound, InvTypesNotFound
 
 trade_bp = Blueprint('trade', __name__)
 
@@ -103,8 +103,12 @@ def trade():
                     local_price = jita_price * 1.3
                     stockout = True
                 
-                type_name = item_type_name(type_id)
-                packaged_volume = item_packaged_volume(type_id)
+                try:
+                    type_name = item_type_name(type_id)
+                    packaged_volume = item_packaged_volume(type_id)
+                except InvTypesNotFound:
+                    current_app.logger.warning('InvTypes not found, type id: {}'.format(type_id))
+                    continue
 
                 jita_to_cost = float(packaged_volume * structure.jita_to_fee)
 
@@ -158,10 +162,8 @@ def item_type_name(type_id):
         InvTypes = Base.classes.invTypes
         item = db.session.query(InvTypes).get(type_id)
         if item is None:
-            type_name = 'Unknown Item'
-            current_app.logger.warning('typename not found, type id: {}'.format(type_id))
-        else:
-            type_name = item.typeName
+            raise InvTypesNotFound
+        type_name = item.typeName
         r.set(key_str.format(type_id), type_name)
         return type_name
     return str(type_name)
@@ -177,6 +179,8 @@ def item_packaged_volume(type_id):
         if inv_volumes is None:
             InvTypes = Base.classes.invTypes
             inv_types = db.session.query(InvTypes).get(type_id)
+            if inv_types is None:
+                raise InvTypesNotFound
             packaged_volume = inv_types.volume
             r.set(key_str.format(type_id), float(packaged_volume))
             return packaged_volume

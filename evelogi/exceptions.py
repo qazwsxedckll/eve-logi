@@ -3,3 +3,6 @@ class GetESIDataError(Exception):
 
 class GetESIDataNotFound(GetESIDataError):
     pass
+
+class InvTypesNotFound(Exception):
+    pass
