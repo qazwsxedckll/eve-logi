@@ -156,7 +156,12 @@ def item_type_name(type_id):
     type_name = r.get(key_str.format(type_id))
     if type_name is None:
         InvTypes = Base.classes.invTypes
-        type_name = db.session.query(InvTypes).get(type_id).typeName
+        item = db.session.query(InvTypes).get(type_id)
+        if item is None:
+            type_name = 'Unknown Item'
+            current_app.logger.warning('typename not found, type id: {}'.format(type_id))
+        else:
+            type_name = item.typeName
         r.set(key_str.format(type_id), type_name)
         return type_name
     return str(type_name)

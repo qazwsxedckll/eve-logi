@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 
 import click
 from flask import Flask, session, abort
+from flask.helpers import url_for
 from flask.logging import default_handler
 
 from evelogi.extensions import db, migrate, login_manager, cache, Base, csrf, toolbar
@@ -65,7 +66,7 @@ def register_extensions(app):
     login_manager.init_app(app)
     cache.init_app(app)
     csrf.init_app(app)
-    # toolbar.init_app(app)
+    toolbar.init_app(app)
 
 def register_blueprints(app):
     app.register_blueprint(main_bp)
@@ -81,13 +82,12 @@ def register_template_context(app):
 
     @app.template_global()
     def eve_oauth_url():
-        session['state'] = secrets.token_urlsafe(8)
         params = {
             'response_type': app.config['RESPONSE_TYPE'],
             'redirect_uri': app.config['REDIRECT_URL'],
             'client_id': app.config['CLIENT_ID'],
             'scope': app.config['SCOPE'],
-            'state': session['state'],
+            'state': app.config['STATE'],
         }
 
         return str(app.config['OAUTH_URL'] + urlencode(params))
