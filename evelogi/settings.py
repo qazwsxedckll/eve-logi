@@ -4,6 +4,7 @@ basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    STATE=os.getenv('STATE')
 
 class DevelopmentConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URL')
