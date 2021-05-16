@@ -33,13 +33,12 @@ def redirect_back(default='main.index', **kwargs):
     return redirect(url_for(default, **kwargs))
 
 def eve_oauth_url():
-    session['state'] = secrets.token_urlsafe(8)
     params = {
         'response_type': current_app.config['RESPONSE_TYPE'],
         'redirect_uri': current_app.config['REDIRECT_URL'],
         'client_id': current_app.config['CLIENT_ID'],
         'scope': current_app.config['SCOPE'],
-        'state': session['state'],
+        'state': current_app.config['STATE'],
     }
 
     return str(current_app.config['OAUTH_URL'] + urlencode(params))

@@ -127,11 +127,15 @@ def trade():
                 estimate_profit = profit_per_item * volumes[type_id]
                 if estimate_profit < 100000000:
                     continue
+                    
+                daily_volume = round(volumes[type_id] / 30, 2)
+                if daily_volume < form.volume_filter.data:
+                    continue
 
                 records.append({'type_id': type_id,
                                 'type_name': type_name,
                                 'jita_sell_price': jita_price,
-                                'daily_volume': round(volumes[type_id] / 30, 2),
+                                'daily_volume': daily_volume,
                                 'local_price': local_price,
                                 'estimate_profit': estimate_profit,
                                 'margin': margin,
