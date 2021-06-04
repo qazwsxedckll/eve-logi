@@ -1,18 +1,28 @@
 from asyncio import tasks
 import requests
-import secrets
 import asyncio
 import aiohttp
 from urllib.parse import urlparse, urljoin, urlencode
+from functools import wraps
 
 import redis
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError, JWTError, JWTClaimsError
 
-from flask import request, redirect, url_for, current_app, session, g
+from flask import request, redirect, url_for, current_app, session, g, abort
 from flask_login import current_user
 
 from evelogi.exceptions import GetESIDataError, GetESIDataNotFound
+
+def permission_required(permission_name):
+    def decorator(func):
+        @wraps(func)
+        def decorated_function(*args, **kwargs):
+            if not current_user.can(permission_name):
+                abort(403)
+            return func(*args)
+        return decorated_function
+    return decorator
 
 def get_redis():
     if 'redis' not in g:

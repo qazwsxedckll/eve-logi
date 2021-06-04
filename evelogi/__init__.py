@@ -17,7 +17,7 @@ from evelogi.settings import config
 from evelogi.blueprints.account import account_bp
 from evelogi.blueprints.main import main_bp
 from evelogi.blueprints.trade import trade_bp
-from evelogi.models.account import User, Character_
+from evelogi.models.account import User, Character_, Role, Guest
 
 def create_app():
     config_name = os.getenv('FLASK_CONFIG', 'development')
@@ -64,6 +64,7 @@ def register_extensions(app):
         Base.prepare(db.engine, reflect=True)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    login_manager.anonymous_user = Guest
     cache.init_app(app)
     csrf.init_app(app)
     toolbar.init_app(app)
@@ -109,3 +110,9 @@ def register_commands(app):
             click.echo('Drop tables.')
         db.create_all()
         click.echo('Initialized database.')
+
+    @app.cli.command()
+    def init():
+        click.echo("Initializing the roles and permissions...")
+        Role.init_role()
+        click.echo("Done.")

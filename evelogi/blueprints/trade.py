@@ -8,7 +8,7 @@ from flask_login import current_user
 from flask.globals import current_app
 from sqlalchemy import and_
 
-from evelogi.utils import async_get_esi_data, eve_oauth_url, get_esi_data, get_redis
+from evelogi.utils import async_get_esi_data, eve_oauth_url, get_esi_data, get_redis, redirect_back
 from evelogi.extensions import cache, db, Base
 from evelogi.forms.trade import TradeGoodsForm
 from evelogi.models.account import Structure
@@ -22,6 +22,10 @@ def trade():
     if not current_user.is_authenticated:
         return redirect(eve_oauth_url())
     else:
+        if not current_user.can("TRADE"):
+            flash("Permission denied.")
+            return redirect_back()
+            
         structures = [
             structure for character in current_user.characters for structure in character.structures]
 

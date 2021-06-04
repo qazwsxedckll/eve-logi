@@ -3,17 +3,34 @@ import base64
 import requests
 
 from flask import current_app, abort
-from flask_login import UserMixin
+from flask_login import UserMixin, AnonymousUserMixin
 
 from evelogi.extensions import db, cache
 from evelogi.utils import get_esi_data, validate_eve_jwt
 
+class Guest(AnonymousUserMixin):
+    def can(self, permission_name):
+        return False
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    subscription = db.Column(db.Integer, default=0)
     characters = db.relationship(
         'Character_', back_populates='user', cascade='all, delete-orphan')
+    role_id = db.Column(db.Integer, db.ForeignKey("role.id"))
+    role = db.relationship('Role', back_populates='users')
+
+    def __init__(self):
+        super().__init__()
+        self.set_role()
+    
+    def set_role(self):
+        if self.role is None:
+            self.role = Role.query.filter_by(name='Free').first()
+        db.session.commit()
+
+    def can(self, permission_name):
+        permission = Permission.query.filter_by(name=permission_name).first()
+        return permission is not None and self.role is not None and permission in self.role.permissions
 
     def get_orders(self):
         """Retrive orders of a user.
@@ -147,3 +164,42 @@ class Structure(db.Model):
             str(self.structure_id) + "/?datasource=tranquility&token=" + \
             self.character.get_access_token()
         return get_esi_data(path)
+
+roles_permissions = db.Table("roles_permissions",
+                            db.Column("role_id", db.Integer, db.ForeignKey("role.id")),
+                            db.Column("permission_id", db.Integer, db.ForeignKey("permission.id")))
+
+class Permission(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30), unique=True)
+    roles = db.relationship("Role", secondary=roles_permissions, back_populates='permissions')
+
+class Role(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30), unique=True)
+    permissions = db.relationship("Permission", secondary=roles_permissions, back_populates='roles')
+    users = db.relationship("User", back_populates='role')
+
+    @staticmethod
+    def init_role():
+        roles_permissions_map = {
+            "Free": ["CHECK"],
+            "Trade": ["CHECK", "TRADE"],
+            "Industry": ["CHECK", "INDUSTRY"],
+            "All": ["CHECK", "TRADE", "INDUSTRY"],
+            "Admin": ["CHECK", "TRADE", "INDUSTRY", "ADMIN"]
+        }
+
+        for role_name in roles_permissions_map:
+            role = Role.query.filter_by(name=role_name).first()
+            if role is None:
+                role = Role(name=role_name)
+                db.session.add(role)
+            role.permissions = []
+            for permission_name in roles_permissions_map[role_name]:
+                permission = Permission.query.filter_by(name=permission_name).first()
+                if permission is None:
+                    permission = Permission(name=permission_name)
+                    db.session.add(permission)
+                role.permissions.append(permission)
+        db.session.commit()
