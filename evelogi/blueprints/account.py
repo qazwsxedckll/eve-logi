@@ -80,6 +80,10 @@ def login():
                         flash('owner has changed.')
                         return url_for('main.index')
                     else:
+                        refresh_token = RefreshToken.query.filter_by(character_id=character.id).first()
+                        if refresh_token.token != data['refresh_token']:
+                            refresh_token.token = data['refresh_token']
+                            db.session.commit()
                         login_user(character.user)
                         current_app.logger.info(
                             'user:{} logined'.format(current_user.id))
