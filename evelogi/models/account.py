@@ -79,7 +79,6 @@ class Character_(db.Model):
             str(self.character_id) + \
             '/wallet/?datasource=tranquility&token=' + access_token
         data = get_esi_data(path)
-        current_app.logger.debug(data)
         return data
 
     @cache.memoize(600)

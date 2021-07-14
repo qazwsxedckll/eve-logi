@@ -137,8 +137,8 @@ def logout():
 @login_required
 def del_character(id):
     character = Character_.query.get_or_404(id)
-    db.session.commit()
     db.session.delete(character)
+    db.session.commit()
     return redirect(url_for('main.account'))
 
 
