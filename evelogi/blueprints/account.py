@@ -136,10 +136,15 @@ def logout():
 @account_bp.route('/character/del/<int:id>', methods=['POST'])
 @login_required
 def del_character(id):
-    character = Character_.query.get_or_404(id)
-    db.session.delete(character)
-    db.session.commit()
-    return redirect(url_for('main.account'))
+    if len(current_user.characters) == 1:
+        db.session.delete(current_user)
+        db.session.commit()
+        return redirect(url_for('main.index'))
+    else:
+        character = Character_.query.get_or_404(id)
+        db.session.delete(character)
+        db.session.commit()
+        return redirect(url_for('main.account'))
 
 
 @account_bp.route('/structure/add', methods=['GET', 'POST'])
