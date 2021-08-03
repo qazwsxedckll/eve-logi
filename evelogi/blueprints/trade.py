@@ -36,6 +36,7 @@ def trade():
         form.multiple.choices = [(i, i) for i in range(1, 6)]
         if form.validate_on_submit():
             jita_sell_data = get_jita_sell_orders()
+            jita_sell_data = [item for item in jita_sell_data if item['location_id'] == 60003760]
             type_ids = list({item['type_id'] for item in jita_sell_data})
 
             my_orders = current_user.get_orders()
