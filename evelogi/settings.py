@@ -1,4 +1,5 @@
 import os
+import uuid
 
 basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 

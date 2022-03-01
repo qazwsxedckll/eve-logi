@@ -80,7 +80,7 @@ def register_shell_context(app):
 
 def register_template_context(app):
 
-    app.config['STATE'] = uuid.uuid4()
+    app.config['STATE'] = str(uuid.uuid4())
     @app.template_global()
     def eve_oauth_url():
         params = {

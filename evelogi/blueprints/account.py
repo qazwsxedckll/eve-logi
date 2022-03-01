@@ -1,7 +1,6 @@
 import os
 import base64
 import requests
-import time
 
 from flask import Blueprint, flash, session
 from flask.templating import render_template
@@ -25,7 +24,7 @@ def login():
         current_app.logger.warning('state from eve:{} does not match state sent:{}'.format(
             state, current_app.config.get('STATE')))
         flash('state error')
-        return url_for('main.index')
+        return redirect_back()
 
     code = request.args.get('code')
     client_id = current_app.config['CLIENT_ID']
@@ -58,7 +57,7 @@ def login():
             jwt = validate_eve_jwt(access_token)
         except Exception as e:
             flash('validate jwt error')
-            return url_for('main.index')
+            return redirect_back()
 
         character_id = jwt["sub"].split(":")[2]
         character_name = jwt["name"]
@@ -78,7 +77,7 @@ def login():
                         db.session.commit()
                         current_app.logger.warning('owner has changed.')
                         flash('owner has changed.')
-                        return url_for('main.index')
+                        return redirect_back()
                     else:
                         refresh_token = RefreshToken.query.filter_by(character_id=character.id).first()
                         if refresh_token.token != data['refresh_token']:
@@ -93,7 +92,7 @@ def login():
                     current_app.logger.error(
                         'orphan character, something need to be fixed')
                     flash('Error')
-                    return url_for('main.index')
+                    return redirect_back()
         else:
             character = Character_(
                 name=character_name, character_id=character_id, owner_hash=owner_hash)
@@ -123,7 +122,7 @@ def login():
     else:
         current_app.logger.warning(
             "\nSSO response JSON is: {}, code: {}".format(res.text, res.status_code))
-        return url_for('main.index')
+        return redirect_back()
 
 
 @account_bp.route('/logout/')
