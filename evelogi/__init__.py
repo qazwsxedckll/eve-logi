@@ -80,6 +80,7 @@ def register_shell_context(app):
 
 def register_template_context(app):
 
+    app.config['STATE'] = uuid.uuid4()
     @app.template_global()
     def eve_oauth_url():
         params = {
@@ -87,7 +88,7 @@ def register_template_context(app):
             'redirect_uri': app.config['REDIRECT_URL'],
             'client_id': app.config['CLIENT_ID'],
             'scope': app.config['SCOPE'],
-            'state': uuid.uuid4(),
+            'state': app.config['STATE'],
         }
 
         return str(app.config['OAUTH_URL'] + urlencode(params))

@@ -44,12 +44,13 @@ def redirect_back(default='main.index', **kwargs):
     return redirect(url_for(default, **kwargs))
 
 def eve_oauth_url():
+    current_app.config['STATE'] = uuid.uuid4()
     params = {
         'response_type': current_app.config['RESPONSE_TYPE'],
         'redirect_uri': current_app.config['REDIRECT_URL'],
         'client_id': current_app.config['CLIENT_ID'],
         'scope': current_app.config['SCOPE'],
-        'state': uuid.uuid4(),
+        'state': current_app.config['STATE'],
     }
 
     return str(current_app.config['OAUTH_URL'] + urlencode(params))
