@@ -19,12 +19,12 @@ account_bp = Blueprint('account', __name__)
 
 @account_bp.route('/login/')
 def login():
-    state = request.args.get('state')
-    if state is None or state != current_app.config.get('STATE'):
-        current_app.logger.warning('state from eve:{} does not match state sent:{}'.format(
-            state, current_app.config.get('STATE')))
-        flash('state error')
-        return redirect_back()
+    # state = request.args.get('state')
+    # if state is None or state != current_app.config.get('STATE'):
+    #     current_app.logger.warning('state from eve:{} does not match state sent:{}'.format(
+    #         state, current_app.config.get('STATE')))
+    #     flash('state error')
+    #     return redirect_back()
 
     code = request.args.get('code')
     client_id = current_app.config['CLIENT_ID']
