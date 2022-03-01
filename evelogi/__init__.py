@@ -1,8 +1,7 @@
 from evelogi.utils import eve_oauth_url
 import os
 import logging
-import time
-import secrets
+import uuid
 
 from logging.handlers import RotatingFileHandler
 from urllib.parse import urlencode
@@ -88,7 +87,7 @@ def register_template_context(app):
             'redirect_uri': app.config['REDIRECT_URL'],
             'client_id': app.config['CLIENT_ID'],
             'scope': app.config['SCOPE'],
-            'state': app.config['STATE'],
+            'state': uuid.uuid4(),
         }
 
         return str(app.config['OAUTH_URL'] + urlencode(params))

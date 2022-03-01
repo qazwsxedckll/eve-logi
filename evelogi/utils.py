@@ -1,4 +1,5 @@
 from asyncio import tasks
+import uuid
 import requests
 import asyncio
 import aiohttp
@@ -48,7 +49,7 @@ def eve_oauth_url():
         'redirect_uri': current_app.config['REDIRECT_URL'],
         'client_id': current_app.config['CLIENT_ID'],
         'scope': current_app.config['SCOPE'],
-        'state': current_app.config['STATE'],
+        'state': uuid.uuid4(),
     }
 
     return str(current_app.config['OAUTH_URL'] + urlencode(params))
